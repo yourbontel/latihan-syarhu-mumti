@@ -16,7 +16,7 @@ function App() {
   const [topic, setTopic] = useState(null);
   const [session, setSession] = useState(null);
   const [progress, setProgress] = useState(loadProgress);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confirmExit, setConfirmExit] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
@@ -61,8 +61,8 @@ function App() {
   const goHome = () => { setScreen(user?.role === 'admin' ? 'admin' : 'home'); setSidebarOpen(false); };
   return <div className={`app-shell ${screen === 'login' ? 'auth-shell' : ''}`}>
     {screen !== 'login' && <Sidebar open={sidebarOpen} user={user} onClose={() => setSidebarOpen(false)} onHome={goHome} onProgress={() => { setScreen('home'); setSidebarOpen(false); }} onProfile={() => { setScreen('profile'); setSidebarOpen(false); }} onAdmin={() => { setScreen('admin'); setSidebarOpen(false); }} onLogout={() => setConfirmLogout(true)} />}
-    {screen !== 'login' && <button className="mobile-menu" onClick={() => setSidebarOpen(true)} aria-label="Buka menu"><Menu size={20} /></button>}
-    <main className={screen !== 'login' ? 'workspace' : ''}>
+    {screen !== 'login' && <button className="mobile-menu" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Sembunyikan menu' : 'Buka menu'}><Menu size={20} /></button>}
+    <main className={`${screen !== 'login' ? 'workspace' : ''} ${screen !== 'login' && !sidebarOpen ? 'workspace-expanded' : ''}`}>
       {screen === 'login' && <Login onLogin={login} />}
       {screen === 'login' && <DemoLoginButton onLogin={login} />}
       {screen === 'home' && <Home progress={progress} onSelect={startSelection} onReset={reset} onResume={resumeDraft} />}
