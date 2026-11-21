@@ -1,4 +1,8 @@
-import { sql } from '@vercel/postgres';
+import { createPool } from '@vercel/postgres';
+
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+const pool = createPool({ connectionString });
+export const sql = pool.sql;
 
 export async function ensureSchema() {
   await sql`CREATE TABLE IF NOT EXISTS users (

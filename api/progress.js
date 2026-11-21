@@ -1,5 +1,4 @@
-import { sql } from '@vercel/postgres';
-import { ensureSchema, json, normalizeEmail } from './_db.js';
+import { ensureSchema, json, normalizeEmail, sql } from './_db.js';
 
 export default async function handler(request, response) {
   const email = normalizeEmail(new URL(request.url, `https://${request.headers.host || 'localhost'}`).searchParams.get('email'));

@@ -1,5 +1,5 @@
 import { ensureSchema, json, normalizeEmail } from './_db.js';
-import { sql } from '@vercel/postgres';
+import { sql } from './_db.js';
 
 const DEMO = { name: 'Peserta Demo', email: 'demo@mumti.study', password: 'demo123', role: 'participant' };
 
