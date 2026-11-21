@@ -32,7 +32,12 @@ main { width: 100%; }.home-page, .admin-page { max-width: 1080px; margin: auto; 
 .database-status { margin: 12px 0; color: var(--primary); font-size: 13px; }
 .database-status [role="alert"] { color: #a12d2d; }
 .database-status button { margin-left: 8px; cursor: pointer; }
+.quiz-nav-actions { display: flex; align-items: center; gap: 14px; }
+.save-draft-button { padding: 8px 12px; border: 1px solid rgba(168,199,250,.3); border-radius: 999px; color: var(--primary); background: var(--lavender); font-size: 10px; font-weight: 500; }
+.save-draft-button:hover:not(:disabled) { background: rgba(168,199,250,.24); }
+.save-draft-button:disabled { cursor: default; opacity: .65; }
 .sidebar { transition: transform .2s ease-out; }
 .sidebar:not(.open) { transform: translateX(-100%); }
 .mobile-menu { display: grid; place-items: center; position: fixed; z-index: 11; top: 17px; left: 18px; width: 40px; height: 40px; border: 0; border-radius: 50%; color: var(--primary); background: var(--surface); }
 @media (max-width: 800px) { .workspace-expanded { width: 100%; margin-left: 0; } }
+@media (max-width: 480px) { .quiz-nav-actions { gap: 7px; }.save-draft-button { padding: 7px 9px; font-size: 9px; }.quiz-count { font-size: 17px; } }
