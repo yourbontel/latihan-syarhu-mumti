@@ -1,4 +1,4 @@
-import { ensureSchema, json, normalizeEmail, query } from './_db.js';
+import { ensureSchema, json, normalizeEmail, query, safeDatabaseError } from './_db.js';
 
 export default async function handler(request, response) {
   const email = normalizeEmail(new URL(request.url, `https://${request.headers.host || 'localhost'}`).searchParams.get('email'));
@@ -17,7 +17,8 @@ export default async function handler(request, response) {
     }
     return json(response, { error: 'Method tidak didukung.' }, 405);
   } catch (error) {
-    console.error('Progress API error:', error.code || error.name);
-    return json(response, { error: 'Database query gagal.', code: error.code || error.name }, 500);
+    const diagnostic = safeDatabaseError(error);
+    console.error('Progress API error:', diagnostic);
+    return json(response, { error: 'Database query gagal.', ...diagnostic }, 500);
   }
 }

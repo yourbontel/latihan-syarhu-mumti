@@ -22,3 +22,10 @@ export async function ensureSchema() {
 export const json = (response, body, status = 200) => response.status(status).json(body);
 
 export const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
+export const safeDatabaseError = (error) => ({
+  code: error.code || error.name,
+  detail: String(error.message || 'Unknown database error')
+    .replace(/postgres(?:ql)?:\/\/[^\s'"<>]+/gi, '[database-url-redacted]')
+    .replace(/password\s*[=:]\s*[^\s,;]+/gi, 'password=[redacted]')
+    .slice(0, 240),
+});

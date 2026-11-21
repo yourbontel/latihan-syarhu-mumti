@@ -1,4 +1,4 @@
-import { ensureSchema, json, normalizeEmail, query } from './_db.js';
+import { ensureSchema, json, normalizeEmail, query, safeDatabaseError } from './_db.js';
 
 const DEMO = { name: 'Peserta Demo', email: 'demo@mumti.study', password: 'demo123', role: 'participant' };
 
@@ -23,7 +23,8 @@ export default async function handler(request, response) {
     if (!result.rows[0]) return json(response, { error: 'Email atau kata sandi salah.' }, 401);
     return json(response, { user: result.rows[0] });
   } catch (error) {
-    console.error('Account API error:', error.code || error.name);
-    return json(response, { error: error.code === '23505' ? 'Email tersebut sudah terdaftar.' : 'Database query gagal.', code: error.code || error.name }, 500);
+    const diagnostic = safeDatabaseError(error);
+    console.error('Account API error:', diagnostic);
+    return json(response, { error: error.code === '23505' ? 'Email tersebut sudah terdaftar.' : 'Database query gagal.', ...diagnostic }, 500);
   }
 }
