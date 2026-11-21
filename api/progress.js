@@ -1,4 +1,4 @@
-import { ensureSchema, json, normalizeEmail, sql } from './_db.js';
+import { ensureSchema, json, normalizeEmail, query } from './_db.js';
 
 export default async function handler(request, response) {
   const email = normalizeEmail(new URL(request.url, `https://${request.headers.host || 'localhost'}`).searchParams.get('email'));
@@ -6,13 +6,13 @@ export default async function handler(request, response) {
   try {
     await ensureSchema();
     if (request.method === 'GET') {
-      const result = await sql`SELECT payload FROM progress WHERE email = ${email}`;
+      const result = await query('SELECT payload FROM progress WHERE email = $1', [email]);
       return json(response, { progress: result.rows[0]?.payload || { version: 1, sessions: [], wrongIds: [], drafts: [] } });
     }
     if (request.method === 'PUT') {
       const payload = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
-      await sql`INSERT INTO progress (email, payload) VALUES (${email}, ${JSON.stringify(payload)}::jsonb)
-        ON CONFLICT (email) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`;
+      await query(`INSERT INTO progress (email, payload) VALUES ($1, $2::jsonb)
+        ON CONFLICT (email) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`, [email, JSON.stringify(payload)]);
       return json(response, { progress: payload });
     }
     return json(response, { error: 'Method tidak didukung.' }, 405);
