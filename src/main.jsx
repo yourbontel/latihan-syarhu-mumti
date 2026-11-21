@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, CircleHelp, Flame, History, LayoutDashboard, LogOut, Menu, RotateCcw, ShieldCheck, Sparkles, Target, Trophy, Users, UserRound, X } from 'lucide-react';
-import { ALL_SECTION_ID, getQuestionCount, getQuestionsForSection, getTopics, sections } from './data';
+import { ALL_SECTION_ID, getQuestionCount, getQuestionsForSection, getTopics, refreshDraftQuestions, sections } from './data';
 import { authenticate, clearAuth, emptyProgress, loadAuth, loadProgress, updateProgress } from './storage';
 import './styles.css';
 
@@ -63,7 +63,7 @@ function App() {
   const startQuiz = (selectedTopic) => {
     if (!selectedTopic) return;
     const savedDraft = progress.drafts?.find((draft) => draft.sectionId === sectionId && draft.topic === selectedTopic);
-    if (savedDraft) { setTopic(selectedTopic); setSession(savedDraft); setDraftDirty(false); setScreen('quiz'); return; }
+    if (savedDraft) { resumeDraft(savedDraft); return; }
     const pool = getQuestionsForSection(sectionId).filter((q) => q.topic === selectedTopic);
     const nextSession = { sectionId, topic: selectedTopic, questions: shuffle(pool), index: 0, answers: [], selected: null, submitted: false };
     setSession(nextSession);
@@ -87,7 +87,7 @@ function App() {
     try { await persist('session', result); setDraftDirty(false); setSession({ ...session, result, correct }); setScreen('result'); } catch { /* Keep the quiz available for retry. */ }
   };
   const resumeDraft = (draft) => {
-    setSectionId(draft.sectionId); setTopic(draft.topic); setSession(draft); setDraftDirty(false); setScreen('quiz');
+    setSectionId(draft.sectionId); setTopic(draft.topic); setSession(refreshDraftQuestions(draft)); setDraftDirty(false); setScreen('quiz');
   };
   const answer = (value) => setSession((s) => ({ ...s, selected: value }));
   const submitAnswer = () => {
