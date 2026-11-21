@@ -16,7 +16,8 @@ export default async function handler(request, response) {
       return json(response, { progress: payload });
     }
     return json(response, { error: 'Method tidak didukung.' }, 405);
-  } catch {
-    return json(response, { error: 'Database belum terhubung di Vercel.' }, 500);
+  } catch (error) {
+    console.error('Progress API error:', error.code || error.name);
+    return json(response, { error: 'Database query gagal.', code: error.code || error.name }, 500);
   }
 }

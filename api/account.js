@@ -23,6 +23,7 @@ export default async function handler(request, response) {
     if (!result.rows[0]) return json(response, { error: 'Email atau kata sandi salah.' }, 401);
     return json(response, { user: result.rows[0] });
   } catch (error) {
-    return json(response, { error: error.code === '23505' ? 'Email tersebut sudah terdaftar.' : 'Database belum terhubung di Vercel.' }, 500);
+    console.error('Account API error:', error.code || error.name);
+    return json(response, { error: error.code === '23505' ? 'Email tersebut sudah terdaftar.' : 'Database query gagal.', code: error.code || error.name }, 500);
   }
 }
