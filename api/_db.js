@@ -15,9 +15,6 @@ export async function ensureSchema() {
   )`;
 }
 
-export const json = (body, status = 200) => new Response(JSON.stringify(body), {
-  status,
-  headers: { 'content-type': 'application/json' },
-});
+export const json = (response, body, status = 200) => response.status(status).json(body);
 
 export const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
