@@ -2,27 +2,33 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, CircleHelp, Flame, History, LayoutDashboard, LogOut, Menu, RotateCcw, ShieldCheck, Sparkles, Target, Trophy, Users, UserRound, X } from 'lucide-react';
 import { ALL_SECTION_ID, getQuestionCount, getQuestionsForSection, getTopics, sections } from './data';
-import { clearAuth, clearProgress, deleteDraft, loadAuth, loadProgress, loadUsers, registerUser, saveAuth, saveDraft, saveSession } from './storage';
+import { clearProgress, deleteDraft, loadAuth, loadProgress, loginUser, logoutUser, registerUser, saveDraft, saveSession } from './storage';
 import './styles.css';
 
 const shuffle = (items) => [...items].sort(() => Math.random() - 0.5);
 const pct = (n, total) => total ? Math.round((n / total) * 100) : 0;
-const DEMO_ACCOUNT = { name: 'Peserta Demo', email: 'demo@mumti.study', password: 'demo123' };
 
 function App() {
-  const [screen, setScreen] = useState(loadAuth() ? 'home' : 'login');
-  const [user, setUser] = useState(loadAuth);
+  const [screen, setScreen] = useState('login');
+  const [user, setUser] = useState(null);
   const [sectionId, setSectionId] = useState(null);
   const [topic, setTopic] = useState(null);
   const [session, setSession] = useState(null);
-  const [progress, setProgress] = useState(loadProgress);
+  const [progress, setProgress] = useState({ version: 1, sessions: [], wrongIds: [], drafts: [] });
+  const [ready, setReady] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confirmExit, setConfirmExit] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
   useEffect(() => {
-    if (screen === 'quiz' && session) setProgress(saveDraft(session));
+    if (screen === 'quiz' && session && user) saveDraft(session).then(setProgress).catch(() => {});
   }, [screen, session]);
+
+  useEffect(() => {
+    Promise.all([loadAuth(), loadProgress()]).then(([nextUser, nextProgress]) => {
+      setUser(nextUser); setProgress(nextProgress); setScreen(nextUser ? (nextUser.role === 'admin' ? 'admin' : 'home') : 'login');
+    }).finally(() => setReady(true));
+  }, []);
 
   const startSelection = (id) => {
     setSectionId(id); setTopic(null); setScreen('topics');
@@ -33,13 +39,13 @@ function App() {
     if (savedDraft) { setTopic(selectedTopic); setSession(savedDraft); setScreen('quiz'); return; }
     const pool = getQuestionsForSection(sectionId).filter((q) => q.topic === selectedTopic);
     const nextSession = { sectionId, topic: selectedTopic, questions: shuffle(pool), index: 0, answers: [], selected: null, submitted: false };
-    setSession(nextSession); setProgress(saveDraft(nextSession));
+    setSession(nextSession); saveDraft(nextSession).then(setProgress).catch(() => {});
     setTopic(selectedTopic); setScreen('quiz');
   };
-  const finishQuiz = (answers, quizQuestions) => {
+  const finishQuiz = async (answers, quizQuestions) => {
     const correct = answers.filter((answer, i) => answer === quizQuestions[i].answer).length;
     const result = { id: Date.now(), date: new Date().toISOString(), section: sectionId, topic, correct, total: quizQuestions.length, wrongIds: quizQuestions.filter((q, i) => answers[i] !== q.answer).map((q) => q.id) };
-    const next = saveSession(result); setProgress(next); setSession({ ...session, result, correct }); setScreen('result');
+    const next = await saveSession(result); setProgress(next); setSession({ ...session, result, correct }); setScreen('result');
   };
   const resumeDraft = (draft) => {
     setSectionId(draft.sectionId); setTopic(draft.topic); setSession(draft); setScreen('quiz');
@@ -54,18 +60,18 @@ function App() {
     if (session.index === session.questions.length - 1) finishQuiz(answers, session.questions);
     else setSession((s) => ({ ...s, index: s.index + 1, answers, selected: null, submitted: false }));
   };
-  const reset = () => { setProgress(clearProgress()); setScreen('home'); };
-  const login = (nextUser) => { setUser(saveAuth(nextUser)); setScreen(nextUser.role === 'admin' ? 'admin' : 'home'); };
-  const logout = () => { clearAuth(); setUser(null); setScreen('login'); };
+  const reset = async () => { setProgress(await clearProgress()); setScreen('home'); };
+  const login = (nextUser) => { setUser(nextUser); loadProgress().then(setProgress); setScreen(nextUser.role === 'admin' ? 'admin' : 'home'); };
+  const logout = async () => { await logoutUser(); setUser(null); setScreen('login'); };
 
   const goHome = () => { setScreen(user?.role === 'admin' ? 'admin' : 'home'); setSidebarOpen(false); };
+  if (!ready) return <div className="app-shell auth-shell"><main className="workspace"><p>Memuat ruang belajar...</p></main></div>;
   return <div className={`app-shell ${screen === 'login' ? 'auth-shell' : ''}`}>
     {screen !== 'login' && <Sidebar open={sidebarOpen} user={user} onClose={() => setSidebarOpen(false)} onHome={goHome} onProgress={() => { setScreen('home'); setSidebarOpen(false); }} onProfile={() => { setScreen('profile'); setSidebarOpen(false); }} onAdmin={() => { setScreen('admin'); setSidebarOpen(false); }} onLogout={() => setConfirmLogout(true)} />}
     {screen !== 'login' && <button className="mobile-menu" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Sembunyikan menu' : 'Buka menu'}><Menu size={20} /></button>}
     <main className={`${screen !== 'login' ? 'workspace' : ''} ${screen !== 'login' && !sidebarOpen ? 'workspace-expanded' : ''}`}>
       {screen === 'login' && <Login onLogin={login} />}
-      {screen === 'login' && <DemoLoginButton onLogin={login} />}
-       {screen === 'home' && <Home progress={progress} onSelect={startSelection} onReset={reset} onResume={resumeDraft} onDeleteDraft={(draft) => setProgress(deleteDraft(draft.sectionId, draft.topic))} />}
+       {screen === 'home' && <Home progress={progress} onSelect={startSelection} onReset={reset} onResume={resumeDraft} onDeleteDraft={async (draft) => setProgress(await deleteDraft(draft.sectionId, draft.topic))} />}
       {screen === 'profile' && <Profile user={user} progress={progress} onHome={goHome} />}
       {screen === 'admin' && <Admin onBack={() => setScreen('home')} />}
       {screen === 'topics' && <Topics sectionId={sectionId} onBack={() => setScreen('home')} onStart={startQuiz} />}
@@ -100,34 +106,22 @@ function Profile({ user, progress, onHome }) {
   </div>;
 }
 
-function DemoLoginButton({ onLogin }) {
-  return <button className="demo-login-button" type="button" onClick={() => onLogin({ name: DEMO_ACCOUNT.name, email: DEMO_ACCOUNT.email, role: 'participant' })}>
-    <Users size={16} /> Masuk sebagai peserta demo
-  </button>;
-}
-
 function Login({ onLogin }) {
   const [mode, setMode] = useState('login');
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [confirmPassword, setConfirmPassword] = useState(''); const [error, setError] = useState('');
   const isAdmin = mode === 'admin'; const isRegister = mode === 'register';
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !password || (!isAdmin && !name.trim())) return setError('Lengkapi semua data untuk melanjutkan.');
     if (password.length < 6) return setError('Kata sandi harus memiliki minimal 6 karakter.');
     if (isRegister) {
       if (password !== confirmPassword) return setError('Konfirmasi kata sandi belum sama.');
-      if (loadUsers().some((user) => user.email === normalizedEmail)) return setError('Email tersebut sudah terdaftar.');
       const newUser = { name: name.trim(), email: normalizedEmail, password, role: 'participant' };
-      registerUser(newUser); onLogin({ name: newUser.name, email: newUser.email, role: newUser.role }); return;
+      try { onLogin(await registerUser(newUser)); } catch (error) { setError(error.message); } return;
     }
-    if (isAdmin) { if (normalizedEmail !== 'admin@mumti.study' || password !== 'admin123') return setError('Email atau kata sandi superadmin salah.'); onLogin({ name: 'Superadmin', email: normalizedEmail, role: 'admin' }); return; }
-    const existing = loadUsers().find((user) => user.email === normalizedEmail && user.password === password)
-      || (normalizedEmail === DEMO_ACCOUNT.email && password === DEMO_ACCOUNT.password ? DEMO_ACCOUNT : null);
-    if (!existing) return setError('Email atau kata sandi salah. Daftar akun terlebih dahulu jika belum memiliki akun.');
-    onLogin({ name: existing.name, email: existing.email, role: existing.role });
+    try { onLogin(await loginUser(normalizedEmail, password)); } catch (error) { setError(error.message); }
   };
-  const loginDemo = () => onLogin({ name: DEMO_ACCOUNT.name, email: DEMO_ACCOUNT.email, role: 'participant' });
   const switchMode = (nextMode) => { setMode(nextMode); setError(''); setPassword(''); setConfirmPassword(''); };
   return <div className="auth-page"><div className="auth-visual"><span className="auth-mark"><BookOpen size={21} /></span><p className="kicker"><Sparkles size={14} /> RUANG BELAJAR</p><h1>Ilmu yang tumbuh<br /><i>setiap hari.</i></h1><p>{isRegister ? 'Buat akun untuk mulai latihan dan menjaga ritme belajarmu.' : 'Masuk untuk melanjutkan latihan dan menjaga ritme belajarmu.'}</p><div className="auth-quote">طَلَبُ الْعِلْمِ<br /><small>adalah perjalanan yang mulia</small></div></div><form className="auth-card" onSubmit={submit}><span className="eyebrow">{isRegister ? 'PESERTA BARU' : 'SELAMAT DATANG'}</span><h2>{isRegister ? 'Daftar sebagai peserta' : isAdmin ? 'Portal superadmin' : 'Masuk sebagai peserta'}</h2><p className="auth-muted">{isRegister ? 'Buat akun gratis untuk menyimpan progres latihan.' : isAdmin ? 'Kelola ruang belajar dari satu tempat.' : 'Gunakan akunmu untuk mengakses latihan.'}</p>{(!isAdmin || isRegister) && <label>Nama lengkap<input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nama kamu" /></label>}<label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={isAdmin ? 'admin@mumti.study' : 'nama@email.com'} /></label><label>Kata sandi<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimal 6 karakter" /></label>{isRegister && <label>Konfirmasi kata sandi<input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Ulangi kata sandi" /></label>}{error && <p className="auth-error">{error}</p>}<button className="primary-button auth-submit" type="submit">{isRegister ? 'Buat akun' : 'Masuk'} <ArrowRight size={16} /></button>{!isAdmin && <button className="auth-switch" type="button" onClick={() => switchMode(isRegister ? 'login' : 'register')}>{isRegister ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Daftar peserta'}</button>}<button className="auth-switch" type="button" onClick={() => switchMode(isAdmin ? 'login' : 'admin')}>{isAdmin ? 'Kembali ke login peserta' : 'Masuk sebagai superadmin'}</button><p className="demo-hint"><ShieldCheck size={14} /> Demo lokal: data tidak dikirim ke server.</p></form></div>;
 }
