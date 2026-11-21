@@ -1,144 +1,118 @@
-const make = (id, section, topic, number, prompt, answer, explanation, arabic = '') => ({
+const make = (section, topic, number, prompt, options, answer, arabic = '') => ({
   id: `${section}-${String(number).padStart(2, '0')}`,
-  section,
-  topic,
-  title: `${topic} ${number}`,
-  prompt,
-  arabic,
-  options: [answer],
-  answer: 0,
-  explanation
+  section, topic, title: `${topic} ${number}`, prompt, arabic, options,
+  answer, explanation: options[answer]
 });
 
-const nahwu = [
-  ['Pada kalimat بِسْمِ اللهِ, kata yang diperkirakan menjadi muta\'allaq dengan بِسْمِ berupa apa dan di mana letaknya?', 'Fi\'il yang dibuang dan diletakkan di belakang (mu\'akhkhar), misalnya أقرأُ.', 'بِسْمِ اللهِ'],
-  ['Mengapa اللهِ dalam إِلَى صِرَاطِ الْعَزِيزِ الْحَمِيدِ اللهِ di-i\'rab sebagai \"athaf bayan\"?', 'Agar nama Allah tidak menjadi tabi\' bagi sifat sebelumnya; Allah adalah nama pokok yang diikuti nama-nama-Nya.', 'إِلَى صِرَاطِ الْعَزِيزِ الْحَمِيدِ اللهِ'],
-  ['Apa jenis jumlah pada الحَمْدُ لِلَّهِ dan kedudukan unsurnya?', 'Jumlah ismiyah: الحَمْدُ adalah mubtada\' dan لِلَّهِ adalah khabar.', 'الحَمْدُ لِلَّهِ'],
-  ['Apa dua makna huruf lam pada لِلَّهِ?', 'Al-ikhtishash (pengkhususan) dan al-istihqaq (keberhakan).', 'لِلَّهِ'],
-  ['Apa kedudukan حَمْداً dalam حَمْداً لا يَنْفَدُ dan apa \`amil\`-nya?', 'Manshub sebagai masdar/maf\'ul muthlaq penguat; \`amil\`-nya adalah masdar الحَمْدُ.', 'حَمْداً لا يَنْفَدُ'],
-  ['Mengapa masdar الحَمْدُ dapat beramal menashabkan حَمْداً?', 'Karena masdar yang memakai alif-lam dapat beramal secara mutlak.', 'الحَمْدُ حَمْداً'],
-  ['Apa fungsi لا يَنْفَدُ setelah حَمْداً?', 'Menjadi sifat bagi حَمْداً dan menjelaskan jenis pujian (mubayyin lin-nau\').', 'حَمْداً لا يَنْفَدُ'],
-  ['Apa kedudukan i\'rab أَفْضَلَ dalam أَفْضَلَ ما يَنْبَغِي أَنْ يُحْمَدَ?', 'Sifat kedua bagi kata حَمْداً.', 'أَفْضَلَ ما يَنْبَغِي أَنْ يُحْمَدَ'],
-  ['Apa jenis ما dalam أَفْضَلَ ما يَنْبَغِي أَنْ يُحْمَدَ?', 'Nakirah maushufah, ditakwil menjadi أَفْضَلُ حَمْدٍ يَنْبَغِي أَنْ يُحْمَدَ.', 'ما يَنْبَغِي'],
-  ['Apa status وَصَلَّى اللَّهُ وَسَلَّمَ dari sisi lafaz dan makna?', 'Secara lafaz jumlah khabariyah, tetapi secara makna jumlah insya\'iyah berupa doa.', 'وَصَلَّى اللَّهُ وَسَلَّمَ'],
-  ['Apa kedudukan مُحَمَّدٍ dalam عَلَى أَفْضَلِ المُصْطَفَيْنَ مُحَمَّدٍ?', 'Athaf bayan untuk menjelaskan siapa afdhalul mushthafain.', 'مُحَمَّدٍ'],
-  ['Apa jenis مَنْ dalam وَمَنْ تَعَبَّدَ dan faedahnya?', 'Isim maushul yang bermakna umum (lil-\'umum).', 'وَمَنْ تَعَبَّدَ'],
-  ['Apa kedudukan dan takdir أَمَّا dalam أَمَّا بَعْدُ?', 'Pengganti syarat dan fi\'il syarat; takdirnya مَهْمَا يَكُنْ مِنْ شَيْءٍ بَعْدَ ذَلِكَ.', 'أَمَّا بَعْدُ'],
-  ['Bagaimana i\'rab بَعْدُ dan mengapa dibaca dhammah?', 'Zharaf mabni \`ala adh-dhamm pada posisi nashab karena mudhaf ilaih-nya dibuang dan diniatkan.', 'بَعْدُ'],
-  ['Apa kata kerja yang menjadi muta\'allaq bagi zharaf بَعْدُ?', 'يَكُنْ yang dibuang bersama syaratnya.', 'أَمَّا بَعْدُ'],
-  ['Apa kedudukan مِنْ مُقْنِعِ dalam فَهَذَا مُخْتَصَرٌ فِي الفِقْهِ مِنْ مُقْنِعِ الإِمَامِ?', 'Jar wa majrur sebagai sifat bagi مُخْتَصَرٌ.', 'مِنْ مُقْنِعِ'],
-  ['Apa kedudukan الخَلْقَ dalam كَفَى الخَلْقَ بِالكَافِي?', 'Maf\'ul bih dari fi\'il كَفَى.', 'كَفَى الخَلْقَ بِالكَافِي'],
-  ['Ke mana kembali dhamir هُ pada مِنْهُ?', 'Kembali kepada kitab المُقْنِعِ.', 'مِنْهُ'],
-  ['Mengapa مَسَائِلَ dibaca fathah tanpa tanwin?', 'Karena termasuk mamnu\' minash-sharf, yaitu shighah muntahal jumu\'.', 'مَسَائِلَ'],
-  ['Apa hubungan نَادِرَةَ dengan مَسَائِلَ dan mengapa tanpa tanwin?', 'Na\'at bagi مَسَائِلَ dan tidak bertanwin karena diidhafahkan kepada الوُقُوعِ.', 'نَادِرَةَ الوُقُوعِ'],
-  ['Apa jenis ما dalam وَزِدْتُ مَا عَلَى مِثْلِهِ يُعْتَمَدُ?', 'Isim maushul bermakna الَّذِي dan berkedudukan sebagai maf\'ul bih bagi زِدْتُ.', 'مَا عَلَى مِثْلِهِ يُعْتَمَدُ'],
-  ['Di mana shilah maushul dan muta\'allaq عَلَى مِثْلِهِ?', 'Shilahnya عَلَى مِثْلِهِ يُعْتَمَدُ; jar wa majrur itu muta\'allaq dengan يُعْتَمَدُ.', 'عَلَى مِثْلِهِ يُعْتَمَدُ'],
-  ['Apa fungsi إِذْ dalam إِذِ الهِمَمُ قَدْ قَصُرَتْ?', 'Harf ta\'lil yang menunjukkan alasan/sebab.', 'إِذِ الهِمَمُ قَدْ قَصُرَتْ'],
-  ['Sebutkan mubtada dan khabar pada إِذِ الهِمَمُ قَدْ قَصُرَتْ.', 'Mubtada\' adalah الهِمَمُ; khabarnya jumlah قَدْ قَصُرَتْ.', 'الهِمَمُ قَدْ قَصُرَتْ'],
-  ['Apa kedudukan المُثَبِّطَةُ dalam وَالأَسْبَابُ المُثَبِّطَةُ?', 'Sifat (na\'at) bagi الأَسْبَابُ.', 'الأَسْبَابُ المُثَبِّطَةُ'],
-  ['Apa nama dan fungsi لا dalam لا حَوْلَ وَلا قُوَّةَ إِلَّا بِاللَّهِ?', 'La nafiyah lil-jinsi, menafikan jenis secara menyeluruh.', 'لا حَوْلَ وَلا قُوَّةَ'],
-  ['Ke mana kembali هو dalam وَهُوَ حَسْبُنَا dan apa kedudukan حَسْبُنَا?', 'هو kembali kepada Allah; حَسْبُنَا adalah khabar dari mubtada هو.', 'وَهُوَ حَسْبُنَا'],
-  ['Apa kedudukan الوَكِيلُ dalam وَنِعْمَ الوَكِيلُ?', 'Fa\'il bagi fi\'il madhi jamid نِعْمَ.', 'نِعْمَ الوَكِيلُ'],
-  ['Apa unsur yang dibuang dalam وَنِعْمَ الوَكِيلُ?', 'Makhshush bil-madh dibuang, dengan takdir نِعْمَ الوَكِيلُ اللَّهُ.', 'نِعْمَ الوَكِيلُ'],
-  ['Apa kedudukan عَبْدُ setelah شَيْخُنَا?', 'Badal atau athaf bayan dari شَيْخُنَا.', 'شَيْخُنَا عَبْدُ الرَّحْمَنِ']
-].map((x, i) => make('nahwu', 'nahwu', 'Nahwu', i + 1, x[0], x[1], x[1], x[2]));
+const q = (section, topic, rows) => rows.map((row, index) => make(section, topic, index + 1, ...row));
 
-const shorof = [
-  ['Apa bentuk madhi ma\'lum dan masdar شُغِفَ?', 'Madhi ma\'lum شَغَفَ dan masdarnya شَغَفٌ.', 'شُغِفَ'],
-  ['مُقَرَّرٌ/تَقْرِيرٌ berasal dari akar dan wazan apa?', 'Akar ق ر ر; تَقْرِيرٌ mengikuti wazan تَفْعِيلٌ dari قَرَّرَ.', 'تَقْرِيرٌ'],
-  ['Apa fi\'il madhi dari تَهْذِيبٌ dan تَرْتِيبٌ?', 'هَذَّبَ dan رَتَّبَ, keduanya wazan فَعَّلَ.', 'تَهْذِيبٌ وَتَرْتِيبٌ'],
-  ['بَدَاءَةٌ adalah masdar dari apa dan termasuk bina apa?', 'Dari بَدَأَ dan termasuk mahmuz lam.', 'بَدَاءَةٌ'],
-  ['مُحَذَّرٌ/مُؤَخَّرٌ termasuk shighah apa?', 'Isim maf\'ul dari حَذَّرَ/أَخَّرَ (wazan فَعَّلَ).', 'مُؤَخَّرٌ'],
-  ['Apa fi\'il madhi dan wazan isim fa\'il مُحِيطٌ/مُوصِلٌ?', 'أَحَاطَ/أَوْصَلَ; untuk مُوصِلٌ wazan isim fa\'il-nya مُفْعِلٌ dari أَفْعَلَ.', 'مُحِيطٌ مُوصِلٌ'],
-  ['Apa madhi لا يَنْفَدُ dan harakat \`ain fi\'il-nya?', 'نَفِدَ (kasrah pada madhi) dan يَنْفَدُ (fathah pada mudhari\').', 'لا يَنْفَدُ'],
-  ['مَعْمُولٌ termasuk shighah apa dan dari fi\'il apa?', 'Isim maf\'ul dari عَمِلَ, tsulatsi mujarrad.', 'مَعْمُولٌ'],
-  ['مُؤَكِّدٌ termasuk shighah apa?', 'Isim fa\'il dari أَكَّدَ (wazan فَعَّلَ).', 'مُؤَكِّدٌ'],
-  ['Huruf apa pada المُصْطَفَيْنَ yang diganti menjadi ط dan mengapa?', 'ت diganti ط setelah ص untuk memudahkan pengucapan karena ithbaq.', 'المُصْطَفَيْنَ'],
-  ['Apa akar dan shighah المُصْطَفَيْنَ?', 'Akar ص ف و dan shighah isim maf\'ul, yaitu yang dipilih.', 'المُصْطَفَيْنَ'],
-  ['Apa wazan dan perbedaan makna خَاتَم dan خَاتِم?', 'Wazan فَاعِل/فَاعَل; خَاتَم berarti penutup/stempel, خَاتِم berarti yang mengakhiri.', 'خَاتَمٌ'],
-  ['Apa akar kata خُلَاصَةٌ?', 'Akar خ ل ص.', 'خُلَاصَةٌ'],
-  ['Apa akar kata الآل sebelum i\'lal?', 'أ و ل atau أ هـ ل.', 'الآلُ'],
-  ['صَحْبٌ adalah isim jamak dari kata apa?', 'Dari صَاحِبٌ.', 'صَحْبٌ'],
-  ['مَوْصُولٌ adalah isim maf\'ul dari apa dan bina apa?', 'Dari وَصَلَ dan termasuk bina mitsal wawi.', 'مَوْصُولٌ'],
-  ['تَعَبَّدَ mengikuti wazan apa dan apa masdarnya?', 'Wazan تَفَعَّلَ dan masdar تَعَبُّدٌ.', 'تَعَبَّدَ'],
-  ['أُسْلُوبٌ mengikuti wazan apa dan apa jamaknya?', 'Wazan أُفْعُولٌ; jamaknya أَسَالِيبُ.', 'أُسْلُوبٌ'],
-  ['مُخْتَصَرٌ mengikuti wazan dan shighah apa?', 'Wazan مُفْتَعَلٌ, isim maf\'ul dari اِخْتَصَرَ.', 'مُخْتَصَرٌ'],
-  ['اِخْتِصَارٌ adalah masdar dari apa dan wazan apa?', 'Dari اِخْتَصَرَ dan wazan اِفْتِعَالٌ.', 'اِخْتِصَارٌ'],
-  ['اِحْتِرَازاً adalah masdar dari wazan apa?', 'Wazan اِفْتِعَالٌ dari اِحْتَرَزَ.', 'اِحْتِرَازاً'],
-  ['مُقَلِّدٌ adalah isim fa\'il dari apa?', 'Dari قَلَّدَ (wazan فَعَّلَ).', 'مُقَلِّدٌ'],
-  ['مُقْنِعٌ adalah isim fa\'il dari fi\'il apa?', 'Dari أَقْنَعَ (tsulatsi mazid bi harfin, wazan أَفْعَلَ).', 'مُقْنِعٌ'],
-  ['المُوَفَّقُ adalah shighah apa?', 'Isim maf\'ul dari وَفَّقَ.', 'المُوَفَّقُ'],
-  ['مُطَوَّلٌ adalah shighah apa?', 'Isim maf\'ul dari طَوَّلَ.', 'مُطَوَّلٌ'],
-  ['Sebutkan tiga shighah مَذْهَبٌ secara bahasa.', 'Isim makan, isim zaman, dan masdar (masdar mimi).', 'مَذْهَبٌ'],
-  ['قِيَاسٌ adalah masdar dari apa dan termasuk bina apa?', 'Dari قَاسَ يَقِيسُ dan termasuk bina ajwaf ya\'i.', 'قِيَاسٌ'],
-  ['مُثَبِّطَةٌ adalah isim fa\'il muannats dari apa?', 'Dari ثَبَّطَ (wazan فَعَّلَ).', 'مُثَبِّطَةٌ'],
-  ['نَيْلٌ adalah masdar dari apa dan termasuk bina apa?', 'Dari نَالَ يَنَالُ dan termasuk ajwaf ya\'i.', 'نَيْلٌ'],
-  ['Apa shighah الوَكِيلُ dan maknanya dalam konteks?', 'Shifah musyabbahah/fa\'il bermakna maf\'ul: Dzat yang diserahi urusan.', 'الوَكِيلُ']
-].map((x, i) => make('shorof', 'shorof', 'Shorof', i + 1, x[0], x[1], x[1], x[2]));
+const nahwu = q('nahwu', 'Nahwu', [
+  ["Pada ungkapan بِسْمِ اللهِ, jar wa majrur بِسْمِ muta'allaq dengan kata yang dibuang berupa ...", ['Isim yang diawalkan', "Fi'il yang diakhirkan", 'Harf yang disambung', 'Masdar yang diawalkan'], 1],
+  ["Dalam إِلَى صِرَاطِ الْعَزِيزِ الْحَمِيدِ اللَّهِ, lafaz اللَّهِ di-i'rab sebagai ...", ["Na'at (shifah)", 'Badal', "'Athaf bayan", 'Taukid'], 2],
+  ['Jumlah الحَمْدُ لِلَّهِ merupakan jumlah ismiyah yang susunannya adalah ...', ["Fi'il dan fa'il", "Mubtada' dan khabar", 'Harf dan isim', "Mubtada' dan badal"], 1],
+  ['Makna huruf lam pada لِلَّهِ dalam الحَمْدُ لِلَّهِ adalah ...', ['Al-ikhtishash dan al-istihqaq', 'Al-qasam dan at-ta’ajjub', "At-ta'lil dan al-intiha'", "Al-ibtidaiyah dan az-zarfiyah"], 0],
+  ["Kedudukan i'rab حَمْداً pada الحَمْدُ لِلَّهِ حَمْداً لا يَنْفَدُ adalah ...", ['Hal manshub', 'Tamyiz manshub', "Masdar (maf'ul muthlaq) manshub", "Maf'ul li ajlih"], 2],
+  ["'Amil yang menashabkan حَمْداً adalah ...", ["Fi'il yang dibuang", 'Masdar الحَمْدُ sebelumnya', 'Huruf lam pada لِلَّهِ', 'Jumlah لا يَنْفَدُ'], 1],
+  ['Fungsi kalimat لا يَنْفَدُ setelah حَمْداً adalah sebagai ...', ['Sifat (na’at) yang menjelaskan jenis pujian', 'Khabar kedua', 'Badal', "Maf'ul bih"], 0],
+  ["Pada أَفْضَلَ ما يَنْبَغِي أَنْ يُحْمَدَ, kedudukan أَفْضَلَ adalah ...", ["Mubtada' mu'akhkhar", 'Sifat kedua bagi حَمْداً', 'Hal dari dhamir يُحْمَدَ', "Maf'ul bih dari يَنْبَغِي"], 1],
+  ['Jenis kata ما pada أَفْضَلَ ما يَنْبَغِي أَنْ يُحْمَدَ adalah ...', ['Ma nafiyah', 'Ma istifhamiyah', 'Ma nakirah maushufah', 'Ma mashdariyah'], 2],
+  ['Status وَصَلَّى اللَّهُ وَسَلَّمَ dilihat dari lafaz dan maknanya adalah ...', ['Insya’iyah lafaznya, khabariyah maknanya', 'Khabariyah lafaznya, insya’iyah maknanya', 'Khabariyah lafaz dan maknanya', 'Insya’iyah lafaz dan maknanya'], 1],
+  ["Pada عَلَى أَفْضَلِ المُصْطَفَيْنَ مُحَمَّدٍ, kedudukan مُحَمَّدٍ adalah ...", ["Na'at", 'Khabar', "'Athaf bayan", "Maf'ul bih"], 2],
+  ['Pada وَمَنْ تَعَبَّدَ, مَنْ merupakan isim maushul yang berfaedah ...', ['Pengkhususan', 'Keumuman', 'Pertanyaan', 'Syarat'], 1],
+  ['Pada أَمَّا بَعْدُ, fungsi أَمَّا adalah sebagai ...', ["Harf nida'", "Pengganti syarat dan fi'il syarat", 'Isim istifham', "Harf 'athaf"], 1],
+  ["I'rab بَعْدُ pada أَمَّا بَعْدُ adalah zharaf yang ...", ['Mu’rab dan majrur', 'Mabni ‘ala al-fath', 'Mabni ‘ala adh-dhamm pada posisi nashab', "Marfu' sebagai mubtada'"], 2],
+  ['Kata kerja yang menjadi muta’allaq bagi zharaf بَعْدُ adalah ...', ['كَانَ yang disebutkan', 'يَكُنْ yang dibuang bersama syaratnya', 'أَقْرَأُ yang ditakdirkan', 'قَالَ yang dibuang'], 1],
+  ['Pada فَهَذَا مُخْتَصَرٌ فِي الفِقْهِ مِنْ مُقْنِعِ الإِمَامِ, مِنْ مُقْنِعِ berkedudukan sebagai ...', ['Khabar kedua', 'Hal dari هَذَا', 'Sifat bagi مُخْتَصَرٌ', "Maf'ul bih"], 2],
+  ['Pada كَفَى الخَلْقَ بِالكَافِي, الخَلْقَ adalah ...', ["Fa'il", "Maf'ul bih", 'Tamyiz', 'Zharaf'], 1],
+  ['Pada وَرُبَّمَا حَذَفْتُ مِنْهُ مَسَائِلَ, dhamir هُ kembali kepada ...', ['Imam Ahmad', "Kitab al-Muqni'", 'Kitab al-Kafi', 'Penulis'], 1],
+  ['Mengapa مَسَائِلَ dibaca fathah tanpa tanwin?', ['Karena mabni', 'Karena mudhaf', "Karena mamnu' minash-sharf (shighah muntahal jumu')", "Karena kemasukan alif lam yang dibuang"], 2],
+  ['Pada مَسَائِلَ نَادِرَةَ الوُقُوعِ, hubungan نَادِرَةَ dengan مَسَائِلَ adalah ...', ["Sifat (na'at), dan tidak bertanwin karena idhafah", "Badal, dan tidak bertanwin karena 'alamiyah", 'Hal, dan tidak bertanwin karena mu’annats', 'Tamyiz, dan tidak bertanwin karena jamak'], 0],
+  ['Pada وَزِدْتُ مَا عَلَى مِثْلِهِ يُعْتَمَدُ, jenis dan kedudukan مَا adalah ...', ['Ma nafiyah, tidak berkedudukan', "Isim maushul bermakna الَّذِي, sebagai maf'ul bih", "Ma istifhamiyah, sebagai mubtada'", "Ma mashdariyah, sebagai fa'il"], 1],
+  ['Jar wa majrur عَلَى مِثْلِهِ muta’allaq dengan ...', ['زِدْتُ', 'مَا', 'يُعْتَمَدُ', 'حَذَفْتُ'], 2],
+  ['Pada إِذِ الهِمَمُ قَدْ قَصُرَتْ, fungsi إِذْ adalah ...', ['Harf mufaja’ah', 'Harf ta’lil', 'Isim syarat', 'Harf nafi'], 1],
+  ['Yang menjadi khabar bagi mubtada’ الهِمَمُ adalah ...', ['إِذْ', 'قَدْ saja', 'Jumlah قَدْ قَصُرَتْ', 'Fa’il tersembunyi'], 2],
+  ['Pada وَالأَسْبَابُ المُثَبِّطَةُ, المُثَبِّطَةُ berkedudukan sebagai ...', ['Khabar', 'Sifat bagi الأَسْبَابُ', 'Hal', "Maf'ul bih"], 1],
+  ['Pada وَلا حَوْلَ وَلا قُوَّةَ إِلَّا بِاللَّهِ, لا pertama adalah ...', ['La nahiyah', 'La nafiyah lil-jinsi', 'La ‘athifah', 'La za’idah'], 1],
+  ['Pada وَهُوَ حَسْبُنَا, حَسْبُنَا adalah ...', ["Na'at", "Fa'il", "Khabar dari mubtada' هُوَ", 'Badal'], 2],
+  ['Pada وَنِعْمَ الوَكِيلُ, الوَكِيلُ adalah ...', ['Makhshush bil-madh', "Fa'il bagi نِعْمَ", "Maf'ul bih", 'Tamyiz'], 1],
+  ['Unsur yang dibuang pada وَنِعْمَ الوَكِيلُ adalah ...', ["Fa'il-nya", "Fi'il-nya", "Makhshush bil-madh-nya (taqdirnya: اللَّهُ)", "Khabar-nya"], 2],
+  ['Pada كَانَ شَيْخُنَا عَبْدُ الرَّحْمَنِ, عَبْدُ setelah شَيْخُنَا adalah ...', ['Khabar kana', "Badal atau 'athaf bayan", "Maf'ul bih", 'Tamyiz'], 1]
+]);
 
-const pemahaman = [
-  ['Siapakah nama lengkap pengarang Zad al-Mustaqni\'?', 'Abu an-Naja Musa bin Ahmad bin Musa al-Hajjawi.'],
-  ['Dari kitab apa Zad al-Mustaqni\' diringkas dan siapa pengarangnya?', 'Dari al-Muqni\' karya al-Muwaffaq Ibnu Qudamah al-Maqdisi.'],
-  ['Bagaimana metode al-Hajjawi memilih pendapat fikih?', 'Mencukupkan satu pendapat yang rajih dalam mazhab Ahmad dan hampir tidak keluar dari pendapat masyhur Hanbali muta\'akhkhirin.'],
-  ['Siapa guru Ibnu Utsaimin yang mendorong beliau menghafal Zad?', 'Syaikh Abdurrahman bin Nashir as-Sa\'di rahimahullah.'],
-  ["Di masjid mana Ibnu Utsaimin mengajarkan Zad?", "Masjid Jami' Kabir di 'Unaizah."],
-  ['Siapa dua ulama yang pertama menerbitkan Syarhu al-Mumti\'?', 'Dr. Sulaiman bin Abdullah Aba al-Khail dan Dr. Khalid bin Ali al-Musyaiqih.'],
-  ['Mengapa cetakan pertama Syarhu al-Mumti\' perlu direvisi?', 'Syarh lisan berbeda dari tulisan dalam ketepatan kata, kerapian ungkapan, dan cakupan pembahasan.'],
-  ['Siapa pembaca naskah revisi, pentakhrij hadis, dan pengoreksi cetak?', 'Dibacakan Khalid al-Musyaiqih; ditakhrij dan dikoreksi Umar bin Sulaiman al-Hafyan.'],
-  ['Mengapa basmalah mengikuti dua teladan?', 'Mengikuti Al-Qur\'an dan Nabi ﷺ yang memulai surat-surat dengan basmalah.'],
-  ['Apa perbedaan الرحمن dan الرحيم ketika digabungkan?', 'الرحمن menunjukkan luasnya sifat rahmat; الرحيم menunjukkan penyampaian rahmat kepada hamba yang dikehendaki.'],
-  ['Apa definisi الحمد dan doa Nabi saat senang dan susah?', 'Menyifati yang dipuji dengan kesempurnaan; saat senang الحمد لله الذي بنعمته تتم الصالحات, saat susah الحمد لله على كل حال.'],
-  ['Mengapa Allah berhak mendapat pujian yang tidak habis?', 'Karena sifat-sifat kesempurnaan Allah tidak pernah habis.'],
-  ['Apa definisi shalawat Allah menurut Abul Aliyah?', 'Pujian Allah kepada orang yang dishalawati di al-mala\' al-a\'la di hadapan malaikat muqarrabin.'],
-  ['Apa perbedaan manfaat shalawat dan salam untuk Nabi?', 'Salam menghilangkan hal yang ditakuti/kekurangan; shalawat menetapkan hal yang diharapkan/kesempurnaan.'],
-  ['Siapa lima rasul ulul azmi dan tiga keutamaan Nabi Muhammad?', 'Nuh, Ibrahim, Musa, Isa, Muhammad ﷺ; penutup nabi, imam para nabi saat Mi\'raj, dan pemilik syafa\'at al-\'uzhma.'],
-  ['Apa perbedaan makna الآل sendirian dan bersama الأصحاب?', 'Sendirian berarti seluruh pengikut agama; bersama ashhab berarti kerabat beliau yang beriman.'],
-  ['Sebutkan dua fondasi dan dua syarat diterimanya ibadah.', 'Fondasi: cinta dan pengagungan. Syarat: ikhlas karena Allah dan mutaba\'ah kepada Nabi ﷺ.'],
-  ['Apa kekeliruan memaknai أَمَّا بَعْدُ dan makna benarnya?', 'Bukan sekadar transisi gaya bahasa, tetapi ungkapan saat memasuki inti topik pembicaraan.'],
-  ['Jelaskan definisi al-fiqh secara bahasa, syara, dan istilah.', 'Bahasa: pemahaman. Syara: mengetahui hukum Allah. Istilah: mengetahui hukum syariat amaliyah beserta dalil terperinci.'],
-  ['Mengapa muqallid bukan faqih dan kapan taklid dibolehkan?', 'Ia tidak mengetahui hukum beserta dalilnya; taklid dibolehkan saat darurat dan tidak mampu menggali dalil.'],
-  ['Apa peringatan tentang gelar الإمام dan penyebutan شهيد?', 'Jangan bermudah memberi gelar Imam kepada yang tidak layak dan jangan memastikan individu tertentu syahid kecuali ada nas.'],
-  ['Sebutkan empat kitab fikih Ibnu Qudamah dan cirinya.', 'Al-\'Umdah ringkas satu pendapat dengan dalil; al-Muqni\' menengah dua pendapat; al-Kafi dua pendapat dengan dalil dan ta\'lil; al-Mughni fikih perbandingan.'],
-  ['Pada tahun berapa al-Muwaffaq Ibnu Qudamah wafat?', 'Tahun 620 H.'],
-  ['Sebutkan tiga keistimewaan Imam Ahmad dan ujian akidahnya.', 'Imam Ahlus Sunnah dalam tauhid, fikih, dan hadis; teguh dalam fitnah khalq al-Qur\'an.'],
-  ['Apa beda madzhab syakhshi dan madzhab isthilahi?', 'Syakhshi adalah pendapat pribadi imam berdasarkan dalil; isthilahi adalah pendapat yang disepakati ulama mazhab belakangan sebagai mazhabnya.'],
-  ['Sebutkan tiga langkah al-Hajjawi menyusun Zad.', 'Memilih satu pendapat, membuang masalah jarang terjadi, dan menambahkan masalah penting untuk dijadikan pegangan.'],
-  ['Mengapa al-Hajjawi membuang masalah yang jarang terjadi?', 'Karena himmah melemah dan faktor penghalang semakin banyak.'],
-  ['Apa penghalang terbesar penuntut ilmu dan amalan saat menghadapi fatwa?', 'Dosa-dosa; dianjurkan memperbanyak istighfar.'],
-  ['Bandingkan Zad al-Mustaqni\' dengan Dalil ath-Thalib.', 'Zad lebih padat dan menyeluruh; Dalil ath-Thalib lebih rapi susunannya.'],
-  ['Apa makna لا حول ولا قوة إلا بالله dan siapa yang mengucapkan حسبنا الله ونعم الوكيل?', 'Tidak ada perubahan keadaan dan kekuatan tanpa pertolongan Allah; Nabi Ibrahim mengucapkannya saat dilempar ke dalam api.']
-].map((x, i) => make('pemahaman', 'pemahaman', 'Pelajaran & Pemahaman', i + 1, x[0], x[1], x[1], '')); 
+const shorof = q('shorof', 'Shorof', [
+  ["Bentuk fi'il madhi ma'lum dan masdar dari شُغِفَ adalah ...", ['شَغَفَ – شَغَفاً', 'شَاغَفَ – مُشَاغَفَةً', 'أَشْغَفَ – إِشْغَافاً', 'تَشَغَّفَ – تَشَغُّفاً'], 0],
+  ['تَقْرِيرٌ berasal dari ق ر ر dan mengikuti wazan ...', ['تَفَاعُلٌ', 'تَفْعِيلٌ', 'تَفَعُّلٌ', 'اِفْتِعَالٌ'], 1],
+  ['Fi’il madhi dari تَهْذِيبٌ dan تَرْتِيبٌ adalah ...', ['هَذَبَ dan رَتَبَ', 'أَهْذَبَ dan أَرْتَبَ', 'هَذَّبَ dan رَتَّبَ', 'تَهَذَّبَ dan تَرَتَّبَ'], 2],
+  ['بَدَاءَةٌ adalah masdar dari بَدَأَ, termasuk bina’ ...', ['Mahmuz fa’', 'Mahmuz ‘ain', 'Mahmuz lam', 'Naqish wawi'], 2],
+  ['مُؤَخَّرٌ termasuk shighah ...', ["Isim fa'il", "Isim maf'ul dari أَخَّرَ", 'Isim zaman', 'Masdar mimi'], 1],
+  ['مُوصِلٌ adalah isim fa’il dari أَوْصَلَ dengan wazan ...', ['فَاعِلٌ', 'مُفَعِّلٌ', 'مُفْعِلٌ', 'مُفْتَعِلٌ'], 2],
+  ['Fi’il madhi dari يَنْفَدُ beserta harakat ‘ain fi’il-nya adalah ...', ['نَفَدَ (fathah)', 'نَفِدَ (kasrah)', 'نَفُدَ (dhammah)', 'أَنْفَدَ (mazid)'], 1],
+  ['مَعْمُولٌ termasuk shighah ...', ["Isim fa'il", 'Shifah musyabbahah', "Isim maf'ul dari عَمِلَ", 'Isim alat'], 2],
+  ['مُؤَكِّدٌ adalah isim fa’il dari ...', ['أَكَدَ', 'أَكَّدَ', 'تَأَكَّدَ', 'اِئْتَكَدَ'], 1],
+  ['Perubahan ت menjadi ط pada المُصْطَفَيْنَ terjadi karena ...', ['Bertemu wawu', 'Didahului shad (ithbaq) agar mudah diucapkan', 'Diakhiri ya', 'Diikuti fa’'], 1],
+  ['Akar kata dan shighah المُصْطَفَيْنَ adalah ...', ['ص ف و – isim maf’ul', 'ص ط ف – isim fa’il', 'و ص ف – isim maf’ul', 'ص ف ح – isim fa’il'], 0],
+  ['خَاتَمٌ dengan fathah pada ta’ berarti ...', ['Yang memulai', 'Penutup/yang terakhir menutup', 'Yang menyerupai', 'Yang menyertai'], 1],
+  ['Akar kata tsulatsi خُلَاصَةٌ adalah ...', ['خ ل ص', 'خ ص ص', 'ل خ ص', 'خ ل ط'], 0],
+  ['الآلُ sebelum i’lal berasal dari ...', ['أ ل ل', 'أ و ل (atau أ هـ ل)', 'و ل ي', 'أ ي ل'], 1],
+  ['صَحْبٌ adalah isim jamak dari ...', ['صُحْبَةٌ', 'صَحَابِيٌّ', 'صَاحِبٌ', 'مُصَاحِبٌ'], 2],
+  ['مَوْصُولٌ berasal dari وَصَلَ, termasuk bina’ ...', ['Ajwaf wawi', 'Mitsal wawi', 'Naqish wawi', 'Mudha’af'], 1],
+  ['Masdar تَعَبَّدَ yang mengikuti تَفَعَّلَ adalah ...', ['تَعْبِيدٌ', 'تَعَابُدٌ', 'تَعَبُّدٌ', 'اِسْتِعْبَادٌ'], 2],
+  ['Wazan dan jamak أُسْلُوبٌ adalah ...', ['أَفْعَلُ – أَسْلَابٌ', 'أُفْعُولٌ – أَسَالِيبُ', 'فُعْلُولٌ – سَلَابِيبُ', 'مَفْعُولٌ – مَسَالِيبُ'], 1],
+  ['مُخْتَصَرٌ pada wazan مُفْتَعَلٌ termasuk ...', ["Isim fa'il", "Isim maf'ul", 'Isim alat', 'Shifah musyabbahah'], 1],
+  ['اِخْتِصَارٌ mengikuti wazan ...', ['اِسْتِفْعَالٌ', 'اِنْفِعَالٌ', 'اِفْتِعَالٌ', 'إِفْعَالٌ'], 2],
+  ['اِحْتِرَازاً adalah masdar dari wazan ...', ['اِفْتَعَلَ – اِفْتِعَالاً', 'اِنْفَعَلَ – اِنْفِعَالاً', 'اِسْتَفْعَلَ – اِسْتِفْعَالاً', 'أَفْعَلَ – إِفْعَالاً'], 0],
+  ['مُقَلِّدٌ adalah isim fa’il dari ...', ['قَلَدَ', 'أَقْلَدَ', 'قَلَّدَ', 'تَقَلَّدَ'], 2],
+  ['مُقْنِعٌ adalah isim fa’il dari ...', ['قَنَعَ', 'قَنَّعَ', 'أَقْنَعَ', 'اِقْتَنَعَ'], 2],
+  ['المُوَفَّقُ adalah ...', ["Isim fa'il dari وَفَقَ", "Isim maf'ul dari وَفَّقَ", "Isim maf'ul dari أَوْفَقَ", "Isim fa'il dari تَوَفَّقَ"], 1],
+  ['مُطَوَّلٌ adalah ...', ["Isim maf'ul dari طَوَّلَ", "Isim fa'il dari طَالَ", 'Isim tafdhil', 'Isim makan'], 0],
+  ['مَذْهَبٌ secara bahasa dapat berupa ...', ["Isim fa'il, isim maf'ul, dan isim alat", 'Isim makan, isim zaman, dan masdar', 'Shifah musyabbahah, isim tafdhil, dan hal', "Jamak taksir, masdar, dan isim fa'il"], 1],
+  ['قِيَاسٌ dari قَاسَ يَقِيسُ termasuk bina’ ...', ['Mitsal ya’i', 'Ajwaf ya’i', 'Naqish ya’i', 'Lafif maqrun'], 1],
+  ['مُثَبِّطَةٌ adalah isim fa’il mu’annats dari ...', ['ثَبَتَ', 'أَثْبَتَ', 'ثَبَّطَ', 'تَثَبَّطَ'], 2],
+  ['نَيْلٌ dari نَالَ يَنَالُ termasuk bina’ ...', ['Ajwaf ya’i', 'Naqish wawi', 'Shahih', 'Mudha’af'], 0],
+  ['الوَكِيلُ sebagai fa’il bermakna maf’ul (الموكول إليه) berarti ...', ['Yang mewakilkan', 'Yang diserahi urusan', 'Yang meminta pertolongan', 'Yang menghukum'], 1]
+]);
 
-const addOptions = (group) => group.forEach((question, index) => {
-  const correctOption = question.options[0];
-  const distractors = [];
-  for (let offset = 1; distractors.length < 3; offset += 1) {
-    const candidate = group[(index + offset) % group.length].options[0];
-    if (candidate !== correctOption && !distractors.includes(candidate)) distractors.push(candidate);
-  }
-  const correctIndex = (index * 7 + 1) % 4;
-  question.options = [...distractors];
-  question.options.splice(correctIndex, 0, correctOption);
-  question.answer = correctIndex;
-});
-
-[nahwu, shorof, pemahaman].forEach(addOptions);
+const pemahaman = q('pemahaman', 'Pelajaran & Pemahaman', [
+  ['Nama lengkap pengarang Zad al-Mustaqni’ fi Ikhtishar al-Muqni’ adalah ...', ['Ibnu Qudamah al-Maqdisi', 'Abu an-Naja Musa bin Ahmad bin Musa al-Hajjawi', 'Mar’i bin Yusuf al-Karmi', 'Sulaiman bin Abdullah Aba al-Khail'], 1],
+  ['Zad al-Mustaqni’ merupakan ringkasan dari ...', ['Al-Mughni', 'Al-Kafi', 'Al-Muqni’', 'Al-’Umdah'], 2],
+  ['Metode penulisan al-Hajjawi dalam Zad al-Mustaqni’ adalah ...', ['Mengumpulkan seluruh pendapat mazhab', 'Mencukupkan satu pendapat rajih dalam mazhab Hanbali', 'Hanya menyebut hadis', 'Membahas ulama kontemporer'], 1],
+  ['Guru Ibnu Utsaimin yang mendorong beliau menghafal Zad adalah ...', ['Abdul Aziz bin Baz', 'Abdurrahman bin Nashir as-Sa’di', 'Muhammad bin Ibrahim', 'Sulaiman al-Hafyan'], 1],
+  ['Masjid tempat Ibnu Utsaimin mengajarkan Zad adalah ...', ['Masjidil Haram', 'Masjid Nabawi', "Masjid Jami' Kabir, 'Unaizah", 'Masjidil Aqsha'], 2],
+  ['Dua ulama yang pertama menerbitkan Syarh al-Mumti’ dari rekaman dan catatan adalah ...', ['Dr. Sulaiman Aba al-Khail dan Dr. Khalid al-Musyaiqih', 'Ibnu Qudamah dan al-Hajjawi', 'Umar al-Hafyan dan as-Sa’di', 'Yahya ash-Sharshari dan Ibnu Taimiyah'], 0],
+  ['Alasan revisi cetakan pertama Syarh al-Mumti’ adalah ...', ['Banyak kesalahan cetak ayat', 'Penjelasan lisan tidak sama dengan tulisan dalam pilihan kata dan kerapian', 'Murid meminta terjemahan', 'Kitab asal hilang'], 1],
+  ['Yang mentakhrij hadis dan mengoreksi cetak coba edisi revisi adalah ...', ['Dr. Khalid al-Musyaiqih', 'Dr. Sulaiman Aba al-Khail', 'Umar bin Sulaiman al-Hafyan', 'Abdurrahman as-Sa’di'], 2],
+  ['Mengawali kitab dengan basmalah meneladani ...', ['Kitab filsafat Yunani', 'Al-Qur’an dan kebiasaan Nabi saat menulis surat', 'Penyair Jahiliyah', 'Tradisi hakim'], 1],
+  ['Ketika digabungkan, الرحمن dan الرحيم menunjukkan ...', ['Makna sama persis', 'Rahman luas sifat rahmat; Rahim sampainya rahmat kepada hamba yang dikehendaki', 'Rahman akhirat dan Rahim dunia', 'Rahman pengampun dan Rahim pemberi rezeki'], 1],
+  ['Doa Nabi ketika tertimpa kesusahan adalah ...', ['Alhamdulillahilladzi bini’matihi tatimmush shalihat', 'Alhamdulillahi ‘ala kulli hal', 'Subhanallahi wa bihamdihi', 'La haula wa la quwwata illa billah'], 1],
+  ['Allah berhak atas pujian yang la yanfad karena ...', ['Manusia hidup selamanya', 'Kesempurnaan Allah tidak pernah habis', 'Pujian bersuara keras', 'Malaikat mencatatnya'], 1],
+  ['Definisi shalawat dari Allah menurut Abul Aliyah adalah ...', ['Ampunan malaikat', 'Doa kaum mukminin', 'Pujian Allah kepada yang dishalawati di al-mala’ al-a’la', 'Rahmat umum'], 2],
+  ['Manfaat penggabungan shalawat dan salam adalah ...', ['Salam menghilangkan yang ditakuti/kekurangan; shalawat mencapai yang diharapkan/kesempurnaan', 'Sekadar memperindah kalimat', 'Salam untuk keluarga, shalawat untuk sahabat', 'Shalawat menghapus dosa, salam menambah harta'], 0],
+  ['Yang bukan bukti keutamaan Nabi atas ulul azmi adalah ...', ['Penutup para nabi', 'Imam para nabi pada malam Mi’raj', 'Pemilik syafa’at al-’uzhma', 'Memiliki usia paling panjang'], 3],
+  ['Makna الآل bersama الأصحاب dan من تعبّد adalah ...', ['Seluruh umat manusia', 'Kerabat Nabi yang beriman', 'Para malaikat', 'Penduduk Makkah'], 1],
+  ['Dua fondasi ibadah dan syarat diterimanya adalah ...', ['Takut dan harap; kaya dan sehat', 'Cinta dan pengagungan; ikhlas dan mutaba’ah', 'Sabar dan syukur; wudhu dan kiblat', 'Zikir dan doa; masjid dan jamaah'], 1],
+  ['أَمَّا بَعْدُ diucapkan ketika ...', ['Mengakhiri pembicaraan', 'Memasuki inti topik yang dituju', 'Berpindah gaya bahasa', 'Memulai salam penutup'], 1],
+  ['Definisi al-fiqh secara istilah adalah ...', ['Memahami arti bahasa Arab', 'Mengetahui ilmu alam dan sejarah', "Mengetahui hukum syara' amaliyah beserta dalil terperinci", 'Menghafal matan tanpa dalil'], 2],
+  ['Bagi yang mampu menggali dalil sendiri, taklid diserupakan dengan ...', ['Memakan makanan lezat', 'Memakan bangkai (akl al-maitah)', 'Minum zamzam', 'Menuntut ilmu wajib'], 1],
+  ['Peringatan terkait gelar dan kesaksian adalah ...', ['Boleh menyebut siapa saja imam besar', 'Tidak bermudah memberi gelar Imam dan memastikan syahid kecuali ada nas', 'Wajib memberi gelar syahid', 'Imam hanya untuk ahli hadis'], 1],
+  ['Kitab Ibnu Qudamah yang menyajikan fikih perbandingan lintas mazhab adalah ...', ['Al-’Umdah', 'Al-Muqni’', 'Al-Kafi', 'Al-Mughni'], 3],
+  ['Al-Muwaffaq Abdullah bin Ahmad bin Qudamah wafat pada ...', ['520 H', '620 H', '720 H', '820 H'], 1],
+  ['Mihnah Imam Ahmad berkaitan dengan akidah ...', ['Kemakhlukan Al-Qur’an', 'Jumlah rakaat tarawih', 'Awal Ramadhan', 'Mengusap khuf'], 0],
+  ['Al-madzhab al-isthilahi adalah ...', ['Pendapat pribadi imam', 'Pendapat yang disepakati dan dijadikan istilah mazhab oleh penerusnya', 'Fatwa satu negeri', 'Pendapat tanpa dalil'], 1],
+  ['Tiga langkah al-Hajjawi menyusun Zad adalah ...', ['Menambah pendapat dan syair serta menghapus thaharah', 'Memilih satu pendapat, menghapus masalah langka, menambah masalah penting', 'Menerjemahkan Persia dan menghapus dalil', 'Mengubah ke mazhab Syafi’i'], 1],
+  ['Alasan membuang masalah langka adalah ...', ['Kertas mahal', 'Semangat menuntut ilmu melemah dan penghalang semakin banyak', 'Tidak ada guru', 'Perintah penguasa'], 1],
+  ['Penghalang terbesar berpaling dari zikir dan ilmu serta amalan yang dianjurkan adalah ...', ['Kemiskinan; tidur', 'Dosa-dosa; memperbanyak istighfar', 'Kesibukan dagang; safar', 'Banyak bicara; puasa sebulan'], 1],
+  ['Perbandingan Zad dan Dalil ath-Thalib adalah ...', ['Zad lebih padat/komprehensif, Dalil lebih rapi susunannya', 'Dalil lebih padat, Zad lebih panjang', 'Pengarang sama', 'Zad ibadah, Dalil muamalah'], 0],
+  ['Yang mengucapkan حَسْبُنَا اللَّهُ وَنِعْمَ الوَكِيلُ ketika dilempar ke api adalah ...', ['Musa', 'Nuh', 'Ibrahim', 'Isa'], 2]
+]);
 
 export const questions = [...nahwu, ...shorof, ...pemahaman];
-
 export const ALL_SECTION_ID = 'halaman-5-24';
-
 export const sections = [
   { id: ALL_SECTION_ID, eyebrow: 'LATIHAN UTAMA', title: 'Latihan halaman 5–24 (Muqoddimah)', description: '90 soal lengkap dari Nahwu, Shorof, dan Pelajaran & Pemahaman.', icon: '90', topics: ['Nahwu', 'Shorof', 'Pelajaran & Pemahaman'] },
   { id: 'nahwu', eyebrow: 'Bagian 01', title: '30 Soal Nahwu', description: 'Latihan i\'rab dan pemahaman struktur bahasa Arab dari halaman 5–24.', icon: 'نحو', topics: ['Nahwu'] },
   { id: 'shorof', eyebrow: 'Bagian 02', title: '30 Soal Shorof', description: 'Latihan akar kata, wazan, bina, dan perubahan bentuk kata.', icon: 'صرف', topics: ['Shorof'] },
-  { id: 'pemahaman', eyebrow: 'Bagian 03', title: '30 Soal Pemahaman', description: 'Uji pelajaran, sejarah kitab, dan pemahaman materi Syarhu al-Mumti\'.', icon: 'علم', topics: ['Pelajaran & Pemahaman'] }
+  { id: 'pemahaman', eyebrow: 'Bagian 03', title: '30 Soal Pemahaman', description: 'Uji pelajaran, sejarah kitab, dan pemahaman materi Syarh al-Mumti’.', icon: 'علم', topics: ['Pelajaran & Pemahaman'] }
 ];
-
-export const getQuestionsForSection = (sectionId) => sectionId === ALL_SECTION_ID
-  ? questions
-  : questions.filter((q) => q.section === sectionId);
-
-export const getTopics = (sectionId) => [...new Set(getQuestionsForSection(sectionId).map((q) => q.topic))];
-
+export const getQuestionsForSection = (sectionId) => sectionId === ALL_SECTION_ID ? questions : questions.filter((item) => item.section === sectionId);
+export const getTopics = (sectionId) => [...new Set(getQuestionsForSection(sectionId).map((item) => item.topic))];
 export const getQuestionCount = (sectionId) => getQuestionsForSection(sectionId).length;

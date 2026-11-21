@@ -30,6 +30,13 @@ export function saveDraft(draft) {
   return next;
 }
 
+export function deleteDraft(sectionId, topic) {
+  const current = loadProgress();
+  const next = { ...current, drafts: current.drafts.filter((draft) => draft.sectionId !== sectionId || draft.topic !== topic) };
+  try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* draft remains visible until reload */ }
+  return next;
+}
+
 export function clearProgress() {
   try { localStorage.removeItem(KEY); } catch { /* storage may be unavailable */ }
   return emptyProgress;
