@@ -1,22 +1,28 @@
 # Mumti Study
 
-## Satu database Neon untuk lokal dan Vercel
+## Progres database
 
-1. Buat project Neon dari integrasi **Storage > Neon** di Vercel, atau gunakan database Neon yang sudah ada.
-2. Salin connection string Neon ke environment variable `DATABASE_URL` pada Vercel untuk **Production**, **Preview**, dan **Development**.
-3. Buat file `.env.local` dari `.env.example` dan isi `DATABASE_URL` dengan connection string database yang sama. Jangan commit `.env.local`.
-4. Jalankan migrasi schema otomatis dengan membuka endpoint `/api/health` sekali. Tabel `users` dan `sessions` dibuat oleh API saat request pertama.
+Akun, sesi login, hasil latihan, dan draft **Lanjutkan pelajaran** disimpan di Prisma Postgres melalui `/api/auth` dan `/api/progress`. Progres dipisahkan berdasarkan ID akun. Browser hanya membawa cookie sesi HttpOnly; kredensial database tidak dikirim ke browser.
 
-### Menjalankan lokal
+### Lokal
 
-Install Vercel CLI jika belum tersedia, lalu jalankan `vercel dev`. Perintah ini melayani frontend dan `/api` pada origin yang sama, sehingga cookie login dan database Neon bekerja seperti di deployment.
+1. Jalankan `npm install`.
+2. Salin `.env.example` menjadi `.env.local` dan isi `DATABASE_URL` dari environment Development proyek Vercel **latihan-syarhu-mumti**. Alternatif: `npx vercel link`, lalu `npx vercel env pull .env.local`.
+3. Jalankan `npm run dev`. Vite menjalankan API lokal juga. Restart setelah mengubah environment.
+4. Daftar akun baru, lalu gunakan email dan kata sandi yang sama di lokal dan Vercel. Keduanya harus memakai database yang sama.
 
-Alternatifnya, jalankan `npm run dev` dan set `VITE_API_PROXY` ke alamat server Vercel lokal yang menjalankan fungsi API. Jangan menaruh `DATABASE_URL` pada variabel `VITE_*`, karena variabel tersebut masuk ke bundle browser.
+### Vercel
 
-Data akun, password hash, sesi login, progres, draft, dan riwayat latihan sekarang disimpan di Neon. `localStorage` tidak lagi digunakan.
+Database Prisma Postgres sudah terhubung ke proyek. Pastikan `DATABASE_URL` atau `DATABASE_URL_POOLED` tersedia pada target deployment. Deploy perubahan ini melalui Git. Folder `api` dijalankan sebagai Vercel Functions. Tabel berawalan `mumti_` dibuat otomatis pada koneksi pertama; akun database memerlukan izin CREATE TABLE.
 
-Login portal superadmin menggunakan akun database dengan kolom `role = 'admin'`. Buat akun peserta terlebih dahulu, lalu ubah role akun tersebut melalui Neon SQL Editor bila perlu:
+Tidak ada fallback progres ke localStorage. Jika koneksi gagal, aplikasi menampilkan **Belum tersimpan** dan tombol coba lagi. Tunggu **Tersimpan di database** sebelum menutup halaman. Login lokal dan Vercel dilakukan terpisah karena cookie berbeda origin; data akun tetap sama.
 
-```sql
-UPDATE users SET role = 'admin' WHERE email = 'admin@example.com';
-```
+**Akun dan progres browser versi lama tidak otomatis diimpor**, karena data lama tidak memiliki pemilik akun yang dapat diverifikasi. Akun demo bersama dan login admin hardcoded dihapus dari autentikasi. Untuk administrator, ubah `role` akun yang telah terdaftar menjadi `admin` melalui akses database tepercaya. Halaman ringkasan admin masih menggunakan data contoh.
+
+### Verifikasi
+
+`npm test` dan `npm run build`.
+
+Untuk uji integrasi: daftar akun; jawab sebagian latihan; tunggu tersimpan; muat ulang; lanjutkan pelajaran; masuk akun yang sama dari origin lain; pastikan posisi dan jawaban sama. Pastikan akun lain tidak melihat progres tersebut. Uji juga penghapusan draft, penyelesaian, reset, dan putus koneksi. Jangan memakai akun produksi untuk reset pengujian.
+
+Sebelum membuka pendaftaran ke publik berskala besar, tambahkan rate limiting login di Vercel Firewall dan alur pemulihan kata sandi. Environment rahasia tidak boleh diberi awalan `VITE_` atau dikomit.
