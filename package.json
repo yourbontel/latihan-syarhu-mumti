@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.1",
     "@vercel/postgres": "^0.10.0",
     "@vitejs/plugin-react": "latest",
     "lucide-react": "^0.468.0",

@@ -1,8 +1,8 @@
-import { createPool } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
 
 const connectionString = process.env.DATABASE_URL_POOLED || process.env.POSTGRES_URL || process.env.DATABASE_URL;
-const pool = createPool({ connectionString });
-export const query = (text, values = []) => pool.query(text, values);
+export const sql = neon(connectionString);
+export const query = async (text, values = []) => ({ rows: await sql.query(text, values) });
 
 export async function ensureSchema() {
   await query(`CREATE TABLE IF NOT EXISTS users (
