@@ -1,8 +1,8 @@
-import { createClient } from '@vercel/postgres';
+import { createPool } from '@vercel/postgres';
 
-const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
-const client = createClient({ connectionString });
-export const query = (text, values = []) => client.query(text, values);
+const connectionString = process.env.DATABASE_URL_POOLED || process.env.POSTGRES_URL || process.env.DATABASE_URL;
+const pool = createPool({ connectionString });
+export const query = (text, values = []) => pool.query(text, values);
 
 export async function ensureSchema() {
   await query(`CREATE TABLE IF NOT EXISTS users (
