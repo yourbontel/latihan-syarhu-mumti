@@ -51,6 +51,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST' && req.headers.origin && new URL(req.headers.origin).host !== (req.headers['x-forwarded-host'] || req.headers.host)) fail('Asal permintaan tidak diizinkan.', 403);
     const db = await database();
     const route = new URL(req.url, 'http://localhost').pathname;
+    if (route === '/api/health' && req.method === 'GET') return send({ ok: true });
     if (route === '/api/auth' && req.method === 'POST') {
       const input = await readBody(req);
       if (input.action === 'logout') {
