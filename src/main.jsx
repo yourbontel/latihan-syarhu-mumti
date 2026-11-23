@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, CircleHelp, Flame, History, LayoutDashboard, LogOut, Menu, RotateCcw, ShieldCheck, Sparkles, Target, Trophy, Users, UserRound, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronRight, CircleHelp, Flame, History, LayoutDashboard, LoaderCircle, LogOut, Menu, RotateCcw, Save, ShieldCheck, Sparkles, Target, Trophy, Users, UserRound, X } from 'lucide-react';
 import { ALL_SECTION_ID, getQuestionCount, getQuestionsForSection, getTopics, refreshDraftQuestions, sections } from './data';
 import { authenticate, clearAuth, emptyProgress, loadAuth, loadProgress, updateProgress } from './storage';
 import './styles.css';
@@ -19,6 +19,7 @@ function App() {
   const [syncStatus, setSyncStatus] = useState('');
   const [syncError, setSyncError] = useState('');
   const [draftDirty, setDraftDirty] = useState(false);
+  const [saveNotification, setSaveNotification] = useState(null);
   const queue = useRef(Promise.resolve());
   const failed = useRef(null);
   const pending = useRef(0);
@@ -56,7 +57,7 @@ function App() {
     const warn = (event) => { if (pending.current || failed.current || draftDirty) { event.preventDefault(); event.returnValue = ''; } };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, []);
+  }, [draftDirty]);
 
   const startSelection = (id) => {
     setSectionId(id); setTopic(null); setScreen('topics');
@@ -71,13 +72,19 @@ function App() {
     setDraftDirty(true);
     setTopic(selectedTopic); setScreen('quiz');
   };
-  const saveDraft = async () => {
-    if (!session) return false;
-    try { await persist('draft', session); setDraftDirty(false); return true; } catch { return false; }
+  const saveDraft = async (notify = true) => {
+    if (!session || pending.current || failed.current) return false;
+    if (notify) setSaveNotification(null);
+    try {
+      await persist('draft', session);
+      setDraftDirty(false);
+      if (notify) setSaveNotification({ title: 'Progres berhasil disimpan', description: 'Tersimpan di database. Kamu bisa melanjutkan latihan kapan saja.' });
+      return true;
+    } catch { return false; }
   };
   const exitQuiz = async () => {
     if (draftDirty) {
-      const saved = await saveDraft();
+      const saved = await saveDraft(false);
       if (!saved) return;
     }
     setConfirmExit(false); setScreen('home'); setSidebarOpen(false);
@@ -121,18 +128,34 @@ function App() {
     {screen !== 'login' && <button className="mobile-menu" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Sembunyikan menu' : 'Buka menu'}><Menu size={20} /></button>}
     <main className={`${screen !== 'login' ? 'workspace' : ''} ${screen !== 'login' && !sidebarOpen ? 'workspace-expanded' : ''}`}>
       {screen === 'login' && <Login onLogin={login} />}
-      <div className="database-status" role="status">{user && syncStatus}{syncError && <p role="alert">{syncError} {failed.current && <button onClick={() => { const operation = failed.current; failed.current = null; persist(operation.action, operation.value).catch(() => {}); }}>Coba simpan lagi</button>}</p>}</div>
+      {(syncError || (user && pending.current > 0)) && <div className={`database-status ${syncError ? 'database-status-error' : ''}`} role={syncError ? 'alert' : 'status'}>{syncError ? <><CircleHelp size={18} aria-hidden="true" /><div><b>Belum tersimpan</b><p>{syncError}</p>{failed.current && <button disabled={pending.current > 0} onClick={async () => { const operation = failed.current; failed.current = null; try { await persist(operation.action, operation.value); if (operation.action === 'draft') { setDraftDirty(false); setSaveNotification({ title: 'Progres berhasil disimpan', description: 'Tersimpan di database. Kamu bisa melanjutkan latihan kapan saja.' }); } } catch {} }}>Coba simpan lagi</button>}</div></> : <><LoaderCircle className="saving-spinner" size={16} aria-hidden="true" />{syncStatus}</>}</div>}
        {screen === 'home' && <Home progress={progress} onSelect={startSelection} onReset={reset} onResume={resumeDraft} onDeleteDraft={setDraftToDelete} />}
       {screen === 'profile' && <Profile user={user} progress={progress} onHome={goHome} />}
       {screen === 'admin' && <Admin onBack={() => setScreen('home')} />}
       {screen === 'topics' && <Topics sectionId={sectionId} onBack={() => setScreen('home')} onStart={startQuiz} />}
-      {screen === 'quiz' && <Quiz session={session} draftDirty={draftDirty} saving={Boolean(pending.current)} onAnswer={(value) => { if (!pending.current && !failed.current) { answer(value); setDraftDirty(true); } }} onSubmit={() => { if (!pending.current && !failed.current) { submitAnswer(); setDraftDirty(true); } }} onNext={() => { if (!pending.current && !failed.current) nextQuestion(); }} onSave={saveDraft} onBack={() => setConfirmExit(true)} />}
+      {screen === 'quiz' && <Quiz session={session} draftDirty={draftDirty} saving={Boolean(pending.current)} onAnswer={(value) => { if (!pending.current && !failed.current) { answer(value); setDraftDirty(true); } }} onSubmit={() => { if (!pending.current && !failed.current) { submitAnswer(); setDraftDirty(true); } }} onNext={() => { if (!pending.current && !failed.current) nextQuestion(); }} onSave={() => saveDraft()} onBack={() => setConfirmExit(true)} />}
       {screen === 'result' && <Result session={session} onHome={() => setScreen('home')} onRetry={() => startQuiz(topic)} />}
     </main>
+    {saveNotification && <SaveNotification notification={saveNotification} onClose={() => setSaveNotification(null)} />}
     {confirmExit && <div className="confirm-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setConfirmExit(false); }}><section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-exit-title" aria-describedby="confirm-exit-description"><span className="confirm-icon"><LogOut size={20} /></span><h2 id="confirm-exit-title">Keluar dari latihan?</h2><p id="confirm-exit-description">Progres yang belum disimpan akan disimpan sebelum kamu keluar.</p><div className="confirm-actions"><button className="secondary-button" onClick={() => setConfirmExit(false)}>Tetap belajar</button><button className="exit-confirm-button" onClick={exitQuiz}>Keluar</button></div></section></div>}
     {confirmLogout && <div className="confirm-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setConfirmLogout(false); }}><section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-logout-title" aria-describedby="confirm-logout-description"><span className="confirm-icon"><LogOut size={20} /></span><h2 id="confirm-logout-title">Keluar dari akun?</h2><p id="confirm-logout-description">Kamu perlu masuk kembali untuk melanjutkan belajar.</p><div className="confirm-actions"><button className="secondary-button" onClick={() => setConfirmLogout(false)}>Batal</button><button className="exit-confirm-button" onClick={() => { setConfirmLogout(false); logout(); }}>Keluar</button></div></section></div>}
     {draftToDelete && <div className="confirm-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDraftToDelete(null); }}><section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-description" onKeyDown={(event) => { if (event.key === 'Escape') setDraftToDelete(null); }}><span className="confirm-icon"><X size={20} /></span><h2 id="confirm-delete-title">Hapus progres tersimpan?</h2><p id="confirm-delete-description">Yakin ingin menghapus progres latihan <b>{draftToDelete.topic}</b>? Progres yang dihapus tidak dapat dikembalikan.</p><div className="confirm-actions"><button className="secondary-button" autoFocus onClick={() => setDraftToDelete(null)}>Batal</button><button className="exit-confirm-button" onClick={() => { const draft = draftToDelete; setDraftToDelete(null); persist('deleteDraft', { sectionId: draft.sectionId, topic: draft.topic }).catch(() => {}); }}>Ya, hapus</button></div></section></div>}
   </div>;
+}
+
+function SaveNotification({ notification, onClose }) {
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    const timer = window.setTimeout(() => close.current(), 4000);
+    return () => window.clearTimeout(timer);
+  }, [notification]);
+  return <aside className="save-notification" aria-label="Notifikasi penyimpanan">
+    <span className="save-notification-icon" aria-hidden="true"><Check size={20} /></span>
+    <div className="save-notification-copy" role="status" aria-live="polite" aria-atomic="true"><b>{notification.title}</b><p>{notification.description}</p></div>
+    <button className="save-notification-close" onClick={onClose} aria-label="Tutup notifikasi"><X size={17} /></button>
+    <span key={notification.title} className="save-notification-timer" aria-hidden="true" />
+  </aside>;
 }
 
 function Sidebar({ open, user, onClose, onHome, onProgress, onProfile, onAdmin, onLogout }) {
@@ -193,7 +216,7 @@ function Home({ progress, onSelect, onReset, onResume, onDeleteDraft }) {
 
 function Topics({ sectionId, onBack, onStart }) { const section = sections.find((s) => s.id === sectionId); const sectionQuestions = getQuestionsForSection(sectionId); const topics = getTopics(sectionId); return <div className="flow-page"><button className="back-button" onClick={onBack}><ArrowLeft size={16} /> Kembali ke beranda</button><div className="flow-intro"><p className="eyebrow">{section.eyebrow}</p><h1>{section.title}</h1><p>Pilih satu pelajaran untuk mulai. Kamu bebas menentukan urutannya.</p></div><div className="topic-list">{topics.map((t, index) => { const count = sectionQuestions.filter((q) => q.topic === t).length; return <button className="topic-card" key={t} onClick={() => onStart(t)}><span className="topic-index">0{index + 1}</span><span><b>{t}</b><small>{count} soal · latihan bertahap</small></span><ArrowRight /></button>; })}</div><div className="note-box"><CircleHelp size={18} /><p><b>Tips belajar</b><br />Kerjakan dengan tenang. Setelah menjawab, baca penjelasan agar setiap soal menjadi bekal baru.</p></div></div>; }
 
-function Quiz({ session, draftDirty, saving, onAnswer, onSubmit, onNext, onSave, onBack }) { const q = session.questions[session.index]; const isCorrect = session.selected === q.answer; return <div className="quiz-page"><div className="quiz-nav"><button className="back-button" onClick={onBack}><X size={17} /> Keluar</button><span className="quiz-label">{session.questions.length} soal · {q.topic}</span><div className="quiz-nav-actions"><span className="quiz-count">{String(session.index + 1).padStart(2, '0')} <small>/ {String(session.questions.length).padStart(2, '0')}</small></span></div></div><div className="progress-line"><span style={{ width: `${((session.index + (session.submitted ? 1 : 0)) / session.questions.length) * 100}%` }} /></div><div className="question-wrap"><div className="question-meta"><span className="pill">{q.title}</span>{q.chapter && <span className="chapter">{q.chapter}</span>}</div><h1>{q.prompt}</h1><div className="arabic-question" dir="rtl">{q.arabic}</div><div className="options">{q.options.map((option, i) => { let state = ''; if (session.submitted && i === q.answer) state = 'correct'; if (session.submitted && i === session.selected && i !== q.answer) state = 'wrong'; return <button className={`option ${state} ${session.selected === i ? 'selected' : ''}`} key={option} onClick={() => !session.submitted && onAnswer(i)} disabled={session.submitted}><span className="option-letter">{String.fromCharCode(65 + i)}</span><span>{option}</span>{state === 'correct' && <Check className="option-state" size={18} />}{state === 'wrong' && <X className="option-state" size={18} />}</button>; })}</div>{session.submitted ? <div className={`feedback ${isCorrect ? 'positive' : 'negative'}`}><span className="feedback-icon">{isCorrect ? <Check size={18} /> : <CircleHelp size={18} />}</span><div><b>{isCorrect ? 'Jawaban benar.' : 'Belum tepat.'}</b><p>{q.explanation}</p></div></div> : <p className="answer-hint">Pilih satu jawaban yang paling tepat.</p>}<div className="quiz-actions"><button className="save-draft-button" onClick={onSave} disabled={!draftDirty || saving} title="Simpan progres ke database">{saving ? 'Menyimpan…' : draftDirty ? 'Simpan progres' : 'Progres tersimpan'} </button>{!session.submitted ? <button className="primary-button" disabled={session.selected === null} onClick={onSubmit}>Periksa jawaban <ArrowRight size={17} /></button> : <button className="primary-button" onClick={onNext}>{session.index === session.questions.length - 1 ? 'Lihat hasil' : 'Soal berikutnya'} <ArrowRight size={17} /></button>}</div></div></div>; }
+function Quiz({ session, draftDirty, saving, onAnswer, onSubmit, onNext, onSave, onBack }) { const q = session.questions[session.index]; const isCorrect = session.selected === q.answer; return <div className="quiz-page"><div className="quiz-nav"><button className="back-button" onClick={onBack}><X size={17} /> Keluar</button><span className="quiz-label">{session.questions.length} soal · {q.topic}</span><div className="quiz-nav-actions"><span className="quiz-count">{String(session.index + 1).padStart(2, '0')} <small>/ {String(session.questions.length).padStart(2, '0')}</small></span></div></div><div className="progress-line"><span style={{ width: `${((session.index + (session.submitted ? 1 : 0)) / session.questions.length) * 100}%` }} /></div><div className="question-wrap"><div className="question-meta"><span className="pill">{q.title}</span>{q.chapter && <span className="chapter">{q.chapter}</span>}</div><h1>{q.prompt}</h1><div className="arabic-question" dir="rtl">{q.arabic}</div><div className="options">{q.options.map((option, i) => { let state = ''; if (session.submitted && i === q.answer) state = 'correct'; if (session.submitted && i === session.selected && i !== q.answer) state = 'wrong'; return <button className={`option ${state} ${session.selected === i ? 'selected' : ''}`} key={option} onClick={() => !session.submitted && onAnswer(i)} disabled={session.submitted}><span className="option-letter">{String.fromCharCode(65 + i)}</span><span>{option}</span>{state === 'correct' && <Check className="option-state" size={18} />}{state === 'wrong' && <X className="option-state" size={18} />}</button>; })}</div>{session.submitted ? <div className={`feedback ${isCorrect ? 'positive' : 'negative'}`}><span className="feedback-icon">{isCorrect ? <Check size={18} /> : <CircleHelp size={18} />}</span><div><b>{isCorrect ? 'Jawaban benar.' : 'Belum tepat.'}</b><p>{q.explanation}</p></div></div> : <p className="answer-hint">Pilih satu jawaban yang paling tepat.</p>}<div className="quiz-actions"><button className="save-draft-button" onClick={onSave} disabled={!draftDirty || saving} title="Simpan progres ke database">{saving ? <LoaderCircle className="saving-spinner" size={16} aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}{saving ? 'Menyimpan…' : 'Simpan progres'}</button>{!session.submitted ? <button className="primary-button" disabled={session.selected === null} onClick={onSubmit}>Periksa jawaban <ArrowRight size={17} /></button> : <button className="primary-button" onClick={onNext}>{session.index === session.questions.length - 1 ? 'Lihat hasil' : 'Soal berikutnya'} <ArrowRight size={17} /></button>}</div></div></div>; }
 
 function Result({ session, onHome, onRetry }) { const result = session.result; const score = pct(result.correct, result.total); return <div className="result-page"><div className="result-icon"><Trophy size={27} /></div><p className="eyebrow">SESI SELESAI</p><h1>Barakallahu fiik.</h1><p className="result-sub">Satu langkah kecil yang berarti dalam perjalanan belajar.</p><div className="score-card"><div className="score-ring" style={{ '--score': `${score * 3.6}deg` }}><div><strong>{score}</strong><small>%</small></div></div><div className="score-copy"><span>{result.topic}</span><h2>{result.correct} dari {result.total} jawaban benar</h2><p>{score >= 80 ? 'Pemahamanmu terlihat semakin kuat. Pertahankan ritmenya.' : 'Tidak apa-apa. Tinjau kembali penjelasan dan coba lagi.'}</p></div></div><div className="result-actions"><button className="primary-button" onClick={onRetry}><RotateCcw size={17} /> Ulangi latihan</button><button className="secondary-button" onClick={onHome}><History size={17} /> Kembali ke beranda</button></div></div>; }
 
