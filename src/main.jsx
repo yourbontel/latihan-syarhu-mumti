@@ -108,7 +108,13 @@ function App() {
   };
 
   const goHome = () => { setScreen(user?.role === 'admin' ? 'admin' : 'home'); setSidebarOpen(false); };
-  if (loading) return <main className="flow-page" role="status">Memuat akun dan progres dari database…</main>;
+  if (loading) return <main className="loading-page" role="status" aria-live="polite" aria-atomic="true">
+    <div className="loading-content">
+      <span className="loading-mark" aria-hidden="true"><BookOpen size={28} /><span className="loading-ring" /></span>
+      <h1>Menyiapkan ruang belajarmu…</h1>
+      <p>Sedang memuat akun dan progres belajar.<br />Mohon tunggu sebentar.</p>
+    </div>
+  </main>;
   return <div className={`app-shell ${screen === 'login' ? 'auth-shell' : ''}`}>
     {screen !== 'login' && <Sidebar open={sidebarOpen} user={user} onClose={() => setSidebarOpen(false)} onHome={goHome} onProgress={() => { setScreen('home'); setSidebarOpen(false); }} onProfile={() => { setScreen('profile'); setSidebarOpen(false); }} onAdmin={() => { setScreen('admin'); setSidebarOpen(false); }} onLogout={() => setConfirmLogout(true)} />}
     {screen !== 'login' && <button className="mobile-menu" onClick={() => setSidebarOpen((open) => !open)} aria-label={sidebarOpen ? 'Sembunyikan menu' : 'Buka menu'}><Menu size={20} /></button>}
