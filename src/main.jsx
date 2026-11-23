@@ -25,6 +25,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confirmExit, setConfirmExit] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState(null);
 
   const persist = (action, value) => {
     pending.current += 1;
@@ -121,7 +122,7 @@ function App() {
     <main className={`${screen !== 'login' ? 'workspace' : ''} ${screen !== 'login' && !sidebarOpen ? 'workspace-expanded' : ''}`}>
       {screen === 'login' && <Login onLogin={login} />}
       <div className="database-status" role="status">{user && syncStatus}{syncError && <p role="alert">{syncError} {failed.current && <button onClick={() => { const operation = failed.current; failed.current = null; persist(operation.action, operation.value).catch(() => {}); }}>Coba simpan lagi</button>}</p>}</div>
-       {screen === 'home' && <Home progress={progress} onSelect={startSelection} onReset={reset} onResume={resumeDraft} onDeleteDraft={(draft) => persist('deleteDraft', { sectionId: draft.sectionId, topic: draft.topic }).catch(() => {})} />}
+       {screen === 'home' && <Home progress={progress} onSelect={startSelection} onReset={reset} onResume={resumeDraft} onDeleteDraft={setDraftToDelete} />}
       {screen === 'profile' && <Profile user={user} progress={progress} onHome={goHome} />}
       {screen === 'admin' && <Admin onBack={() => setScreen('home')} />}
       {screen === 'topics' && <Topics sectionId={sectionId} onBack={() => setScreen('home')} onStart={startQuiz} />}
@@ -130,6 +131,7 @@ function App() {
     </main>
     {confirmExit && <div className="confirm-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setConfirmExit(false); }}><section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-exit-title" aria-describedby="confirm-exit-description"><span className="confirm-icon"><LogOut size={20} /></span><h2 id="confirm-exit-title">Keluar dari latihan?</h2><p id="confirm-exit-description">Progres yang belum disimpan akan disimpan sebelum kamu keluar.</p><div className="confirm-actions"><button className="secondary-button" onClick={() => setConfirmExit(false)}>Tetap belajar</button><button className="exit-confirm-button" onClick={exitQuiz}>Keluar</button></div></section></div>}
     {confirmLogout && <div className="confirm-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setConfirmLogout(false); }}><section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-logout-title" aria-describedby="confirm-logout-description"><span className="confirm-icon"><LogOut size={20} /></span><h2 id="confirm-logout-title">Keluar dari akun?</h2><p id="confirm-logout-description">Kamu perlu masuk kembali untuk melanjutkan belajar.</p><div className="confirm-actions"><button className="secondary-button" onClick={() => setConfirmLogout(false)}>Batal</button><button className="exit-confirm-button" onClick={() => { setConfirmLogout(false); logout(); }}>Keluar</button></div></section></div>}
+    {draftToDelete && <div className="confirm-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDraftToDelete(null); }}><section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-description" onKeyDown={(event) => { if (event.key === 'Escape') setDraftToDelete(null); }}><span className="confirm-icon"><X size={20} /></span><h2 id="confirm-delete-title">Hapus progres tersimpan?</h2><p id="confirm-delete-description">Yakin ingin menghapus progres latihan <b>{draftToDelete.topic}</b>? Progres yang dihapus tidak dapat dikembalikan.</p><div className="confirm-actions"><button className="secondary-button" autoFocus onClick={() => setDraftToDelete(null)}>Batal</button><button className="exit-confirm-button" onClick={() => { const draft = draftToDelete; setDraftToDelete(null); persist('deleteDraft', { sectionId: draft.sectionId, topic: draft.topic }).catch(() => {}); }}>Ya, hapus</button></div></section></div>}
   </div>;
 }
 
