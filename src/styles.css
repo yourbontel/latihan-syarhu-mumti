@@ -59,6 +59,23 @@ main { width: 100%; }.home-page, .admin-page { max-width: 1080px; margin: auto; 
 @media (max-width: 480px) { .quiz-actions { flex-wrap: wrap; gap: 10px; }.quiz-actions > button { flex: 1 1 auto; } }
 @media (prefers-reduced-motion: reduce) { .save-notification, .save-notification-timer, .saving-spinner { animation: none; } }
 .quiz-nav-actions { display: flex; align-items: center; gap: 14px; }
+.question-navigation { margin-top: 22px; padding: 20px; border-radius: 20px; background: var(--surface); }
+.question-navigation-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.question-navigation-heading b { font-size: 13px; font-weight: 500; }
+.question-navigation-heading > span { color: var(--subtle); font-size: 11px; }
+.question-number-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 8px; }
+.question-number { display: grid; place-items: center; min-height: 44px; padding: 8px; border: 2px solid transparent; border-radius: 12px; color: var(--muted); background: var(--surface-high); font-size: 12px; font-weight: 500; }
+.question-number:hover:not(:disabled) { border-color: var(--subtle); }
+.question-number.answered { color: var(--success); background: rgba(139,213,167,.13); }
+.question-number.pending { color: #f7b955; background: rgba(247,185,85,.13); }
+.question-number[aria-current="step"] { border-color: var(--primary); color: var(--primary); }
+.question-number:disabled { cursor: wait; opacity: .65; }
+.question-navigation-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 14px; color: var(--muted); font-size: 10px; }
+.question-navigation-legend > span { display: flex; align-items: center; gap: 6px; }
+.question-navigation-legend i { width: 10px; height: 10px; border: 1px solid var(--subtle); border-radius: 3px; background: var(--surface-high); }
+.question-navigation-legend .legend-current { border-color: var(--primary); background: var(--lavender); }
+.question-navigation-legend .legend-answered { border-color: var(--success); background: rgba(139,213,167,.2); }
+.question-navigation-legend .legend-pending { border-color: #f7b955; background: rgba(247,185,85,.2); }
 .save-draft-button:disabled { cursor: default; opacity: .65; }
 .quiz-actions { align-items: center; justify-content: space-between; }
 .sidebar { transition: transform .2s ease-out; }
