@@ -16,17 +16,18 @@ test('delete only the selected topic and cap drafts at three', () => {
   assert.deepEqual(mutateProgress(saved, 'deleteDraft', { sectionId: 'all', topic: 'C' }).drafts.map((d) => d.topic), ['D', 'B']);
 });
 test('finish removes matching draft, deduplicates result retries and wrong IDs', () => {
-  const result = { id: 1, section: 'all', topic: 'Nahwu', total: 1, correct: 0, wrongIds: ['q1'] };
+  const result = { id: 1, section: 'all', topic: 'Nahwu', total: 1, correct: 0, wrongIds: ['q1'], items: [{ id: 'q1', selected: 2, correct: false }] };
   let saved = mutateProgress(emptyProgress(), 'draft', draft);
   saved = mutateProgress(saved, 'session', result);
   saved = mutateProgress(saved, 'session', result);
   assert.equal(saved.sessions.length, 1);
+  assert.deepEqual(saved.sessions[0].items, [{ id: 'q1', selected: 2, correct: false }]);
   assert.deepEqual(saved.wrongIds, ['q1']);
   assert.deepEqual(saved.drafts, []);
   assert.deepEqual(mutateProgress(saved, 'reset'), emptyProgress());
 });
 test('invalid operations and malformed progress are rejected', () => {
-  for (const [action, value] of [['invalid', {}], ['draft', {}], ['draft', { ...draft, index: 9 }], ['deleteDraft', null], ['session', { id: 1, total: 1, correct: 2 }]]) {
+  for (const [action, value] of [['invalid', {}], ['draft', {}], ['draft', { ...draft, index: 9 }], ['deleteDraft', null], ['session', { id: 1, total: 1, correct: 2 }], ['session', { id: 1, section: 'all', topic: 'Nahwu', total: 1, correct: 0, wrongIds: [], items: 'bad' }]]) {
     assert.throws(() => mutateProgress(emptyProgress(), action, value), { status: 400 });
   }
 });

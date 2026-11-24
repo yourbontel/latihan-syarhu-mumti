@@ -35,7 +35,7 @@ export function mutateProgress(current, action, value) {
     return { ...current, drafts: current.drafts.filter((d) => d.sectionId !== value.sectionId || d.topic !== value.topic) };
   }
   if (action === 'session') {
-    if (!value || !value.id || typeof value.section !== 'string' || typeof value.topic !== 'string' || !Array.isArray(value.wrongIds) || !Number.isInteger(value.total) || !Number.isInteger(value.correct) || value.total < 1 || value.correct < 0 || value.correct > value.total) fail('Hasil latihan tidak valid.');
+    if (!value || !value.id || typeof value.section !== 'string' || typeof value.topic !== 'string' || !Array.isArray(value.wrongIds) || !Number.isInteger(value.total) || !Number.isInteger(value.correct) || value.total < 1 || value.correct < 0 || value.correct > value.total || (value.items !== undefined && (!Array.isArray(value.items) || value.items.some((item) => !item || typeof item.id !== 'string')))) fail('Hasil latihan tidak valid.');
     return { ...current, sessions: [value, ...current.sessions.filter((s) => s.id !== value.id)].slice(0, 30), wrongIds: [...new Set([...current.wrongIds, ...value.wrongIds])], drafts: current.drafts.filter((d) => d.sectionId !== value.section || d.topic !== value.topic) };
   }
   fail('Operasi progres tidak valid.');
@@ -81,6 +81,12 @@ export default async function handler(req, res) {
     }
     const user = token ? (await db.query('SELECT u.* FROM mumti_users u JOIN mumti_auth_sessions s ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at>NOW()', [hash(token)])).rows[0] : null;
     if (route === '/api/auth') return send({ user: user ? safeUser(user) : null });
+    if (route === '/api/admin' && req.method === 'GET') {
+      if (!user) fail('Silakan masuk kembali untuk mengakses halaman ini.', 401);
+      if (user.role !== 'admin') fail('Akses ditolak. Hanya superadmin yang dapat melihat data peserta.', 403);
+      const rows = (await db.query(`SELECT u.id, u.name, u.email, u.role, p.data AS progress, p.updated_at FROM mumti_users u LEFT JOIN mumti_progress p ON p.user_id = u.id WHERE u.role != 'admin' ORDER BY p.updated_at DESC NULLS LAST, u.name ASC`)).rows;
+      return send({ participants: rows.map((r) => ({ id: r.id, name: r.name, email: r.email, role: r.role, updatedAt: r.updated_at, progress: r.progress || emptyProgress() })) });
+    }
     if (route !== '/api/progress') return send({ error: 'Tidak ditemukan.' }, 404);
     if (!user) fail('Silakan masuk kembali untuk menyimpan progres.', 401);
     if (req.method === 'GET') return send({ progress: (await db.query('SELECT data FROM mumti_progress WHERE user_id=$1', [user.id])).rows[0]?.data || emptyProgress() });

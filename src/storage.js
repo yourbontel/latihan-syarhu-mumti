@@ -14,3 +14,4 @@ export const authenticate = async (input) => (await request('auth', input)).user
 export const clearAuth = () => request('auth', { action: 'logout' });
 export const loadProgress = async () => (await request('progress')).progress;
 export const updateProgress = async (action, value) => (await request('progress', { action, value })).progress;
+export const loadAdminParticipants = async () => (await request('admin')).participants;
